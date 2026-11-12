@@ -27,17 +27,22 @@ const box = {};
 vm.runInNewContext(data[1] + '\n;__out={PERSONAS,DEFAULT_STATIONS};', box);
 const { PERSONAS, DEFAULT_STATIONS } = box.__out;
 
-const jobs = [];
+const perHost = [];
 for (const st of DEFAULT_STATIONS) {
   const key = st.persona, p = PERSONAS[key];
   if (!p || (only.length && !only.includes(key))) continue;
-  const lines = [...p.lines.intro, ...p.lines.ident, ...p.lines.talk, ...Object.values(p.lines.tod)];
-  for (const raw of lines) {
+  const L = p.lines, tod = Object.values(L.tod);
+  // Most useful first: one intro, two station IDs, two talk breaks, then the rest.
+  const lines = [L.intro[0], L.ident[0], L.ident[1], L.talk[0], L.talk[1], L.intro[1], L.ident[2], L.talk[2], ...tod,
+    ...L.intro.slice(2), ...L.ident.slice(3), ...L.talk.slice(3)].filter(Boolean);
+  perHost.push(lines.map(raw => {
     const text = raw.replace(/\{st\}/g, st.name).replace(/\{dj\}/g, p.name);
     const id = hash(key + '|' + text);
-    jobs.push({ key, text, id, file: `voices/${key}/${id}.mp3` });
-  }
+    return { key, text, id, file: `voices/${key}/${id}.mp3` };
+  }));
 }
+const jobs = [];
+for (let i = 0; perHost.some(h => i < h.length); i++) for (const h of perHost) if (h[i]) jobs.push(h[i]);
 const chars = jobs.reduce((n, j) => n + j.text.length, 0);
 console.log(`${jobs.length} lines, ${chars} characters, provider: ${provider}`);
 if (dry) { for (const j of jobs) console.log(`[${j.key}] ${j.text}`); process.exit(0); }
@@ -63,7 +68,7 @@ async function openai(job) {
   return Buffer.from(await r.arrayBuffer());
 }
 
-let elVoices = null;
+let elVoices = null, elCast = null;
 async function elevenVoice(personaKey) {
   const key = process.env.ELEVENLABS_API_KEY, base = process.env.ELEVENLABS_BASE_URL || 'https://api.elevenlabs.io';
   if (!elVoices) {
@@ -72,12 +77,30 @@ async function elevenVoice(personaKey) {
     if (!elVoices.length) throw new Error('This ElevenLabs account has no voices. Add some in the ElevenLabs voice library first.');
     console.log('ElevenLabs voices on this account: ' + elVoices.map(v => v.name).join(', '));
   }
-  const want = ((config.elevenlabs.personas[personaKey] || {}).voice || '').trim().toLowerCase();
-  const hit = want && elVoices.find(v => v.voice_id === want || v.name.toLowerCase() === want || v.name.toLowerCase().startsWith(want));
-  if (hit) return hit;
-  // No voice chosen in voices/config.json: give each host a different voice from the account.
-  const order = Object.keys(config.elevenlabs.personas);
-  return elVoices[Math.max(0, order.indexOf(personaKey)) % elVoices.length];
+  if (!elCast) {
+    // Cast every host once: a named voice wins; otherwise score the account's voices against the
+    // host's brief (gender, accent, character words) and never give two hosts the same voice if avoidable.
+    elCast = {};
+    const used = new Set(), text = v => JSON.stringify([v.name, v.labels || {}, v.description || '']).toLowerCase();
+    for (const [key, c] of Object.entries(config.elevenlabs.personas)) {
+      const want = (c.voice || '').trim().toLowerCase();
+      let pick = want && elVoices.find(v => v.voice_id.toLowerCase() === want || v.name.toLowerCase() === want || v.name.toLowerCase().startsWith(want));
+      if (!pick) {
+        const score = v => {
+          const t = text(v), g = ((v.labels || {}).gender || '').toLowerCase(), a = ((v.labels || {}).accent || '').toLowerCase();
+          let n = used.has(v.voice_id) ? -6 : 0;
+          if (c.gender && g) n += g === c.gender ? 5 : -5;
+          (c.accent || []).forEach((x, i) => { if (a.includes(x)) n += 3 - i * 0.5; });
+          (c.words || []).forEach(w => { if (t.includes(w)) n += 1; });
+          return n;
+        };
+        pick = elVoices.slice().sort((x, y) => score(y) - score(x))[0];
+      }
+      used.add(pick.voice_id); elCast[key] = pick;
+      console.log(`cast ${key}: ${pick.name} (${Object.values(pick.labels || {}).join(', ')})`);
+    }
+  }
+  return elCast[personaKey] || elVoices[0];
 }
 async function elevenlabs(job) {
   const key = process.env.ELEVENLABS_API_KEY; if (!key) throw new Error('ELEVENLABS_API_KEY is not set');
@@ -91,20 +114,25 @@ async function elevenlabs(job) {
 }
 
 const speak = provider === 'elevenlabs' ? elevenlabs : openai;
-let made = 0, kept = 0;
+let made = 0, kept = 0, stopped = null;
+const fresh = new Set();
 for (const job of jobs) {
   const abs = path.join(root, job.file);
-  if (!force && fs.existsSync(abs) && fs.statSync(abs).size > 1000) { kept++; continue; }
-  const audio = await speak(job);
-  if (audio.length < 1000) throw new Error(`The recording for "${job.text}" came back empty.`);
-  fs.mkdirSync(path.dirname(abs), { recursive: true });
-  fs.writeFileSync(abs, audio);
-  made++;
+  if (!force && fs.existsSync(abs) && fs.statSync(abs).size > 1000) { kept++; fresh.add(job.file); continue; }
+  try {
+    const audio = await speak(job);
+    if (audio.length < 1000) throw new Error(`The recording for "${job.text}" came back empty.`);
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    fs.writeFileSync(abs, audio);
+  } catch (e) { stopped = e; break; }
+  made++; fresh.add(job.file);
   console.log(`recorded [${job.key}] ${job.text}`);
 }
+if (stopped && !made) { console.error('Nothing was recorded: ' + stopped.message); process.exit(1); }
+if (stopped) console.log(`::warning::Stopped after ${made} new recordings (${jobs.length - made - kept} lines still to do): ${stopped.message}`);
 
 // Drop recordings of lines that no longer exist, then write the manifest the app reads.
-const wanted = new Set(jobs.map(j => j.file));
+const wanted = force ? fresh : new Set(jobs.map(j => j.file));
 if (!only.length) for (const dir of fs.readdirSync(path.join(root, 'voices'), { withFileTypes: true })) {
   if (!dir.isDirectory()) continue;
   for (const f of fs.readdirSync(path.join(root, 'voices', dir.name))) {

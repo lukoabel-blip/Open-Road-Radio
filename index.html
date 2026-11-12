@@ -274,42 +274,42 @@ if(typeof module!=='undefined'&&module.exports)module.exports=api; else root.ORR
 <script id="data">
 /* ===== Station and DJ definitions. Everything here is data; the app has no station-specific code. ===== */
 const PERSONAS={
- wave:{label:'Easygoing',name:'Marlo',rate:0.95,pitch:1.0,prefer:['Samantha', 'Ava', 'Allison', 'Susan', 'Google US English'],voice:0,lines:{
-  intro:["This is {st}. Windows down, no rush. Let's ease into it.","{st}, coming in soft. Stay as long as you like.","You found {st}. Good timing, we were just getting comfortable."],
-  ident:["{st}.","You're on {st}, where nobody's in a hurry.","{st}. Still here, still easy.","This is {st}. Breathe out.","{st}, the slow lane of the dial."],
-  talk:["I'm {dj}, this is {st}. I had a whole thing planned to say here, and then the last song talked me out of it. More music.","Somebody once told me the scenic route is just the long way with better publicity. I'll take it. {st}.","If you're driving, hi. If you're not driving, also hi, but keep your eyes open anyway. This is {st}.","No traffic report here. I don't know where you are, and that's the nice part. More music on {st}.","{dj} here. That one's been stuck in my head all week, and I'm fine with it."],
-  song:["Coming up on {st}, {title}, from {artist}. Settle in.","Next, {artist} with {title}. I think you'll like where it goes.","Here's {title} by {artist}. Turn it up a little. Just a little."],
-  tod:{morning:"Morning from {st}. Coffee first, opinions later.",afternoon:"Afternoon on {st}. The day's half done and so are we.",evening:"Evening on {st}. The songs get longer from here.",night:"It's late on {st}. Just you, me, and the road hum."}}},
- pulse:{label:'High energy',name:'Jet',rate:1.08,pitch:1.05,prefer:['Karen', 'Catherine', 'Nicky', 'Zoe', 'Google UK English Female'],voice:1,lines:{
-  intro:["{st}. You're in. Let's move.","This is {st}, and we are already going.","{st}, locked. Keep up."],
-  ident:["{st}.","{st}. No brakes.","You're on {st}. Stay loud.","{st}, back to back to back.","This is {st}. Next one's ready."],
-  talk:["{dj} here on {st}. I'd talk longer but the next track is tapping its foot at me.","Quick check. Shoulders loose? Volume up? Good. {st}.","{st}, where the skip button gets lonely. {dj} with you, here's more.","If that last one didn't move you, I've got nothing. Kidding. I've got plenty.","{dj} on {st}. Short break, long run. Go."],
-  song:["Up next on {st}, {artist}, {title}. Go.","Here it comes. {title}, from {artist}.","{artist} is next with {title}. Turn it up."],
-  tod:{morning:"Morning! {st}. We're skipping the snooze button.",afternoon:"Afternoon on {st}. The slump stops here.",evening:"Evening on {st}. The day's done, the night isn't.",night:"Late night on {st}. Nobody's sleeping on this station."}}},
- xs:{label:'Dry and opinionated',name:'Dez',rate:0.98,pitch:0.92,prefer:['Daniel', 'Arthur', 'Oliver', 'Google UK English Male'],voice:2,lines:{
-  intro:["{st}. You probably took a wrong turn. Stay anyway.","This is {st}. We don't take requests. We barely take suggestions.","{st}. Lower your expectations and raise the volume."],
-  ident:["{st}.","{st}. Still unlicensed in spirit.","You're on {st}. Nobody asked for this, and yet.","{st}. The part of the dial your parents skipped.","This is {st}. Carry on."],
-  talk:["{dj}, {st}. I was told to sound more enthusiastic. This is it. This is the enthusiasm.","That was a song. I liked it. That's the whole review. {st}.","{st}, proudly ignoring the charts since whenever this started. {dj} here. More noise.","If you've heard the next one before, good for you. If you haven't, you're welcome.","{dj} on {st}. No giveaways, no contests, no caller number nine. Just this."],
-  song:["Next up, {artist}. The song is {title}. Pay attention.","Here's {title} by {artist}. I have opinions about this one. I'll keep them.","{artist}, {title}. You can thank me later."],
-  tod:{morning:"It's morning. {st} does not approve, but here we are.",afternoon:"Afternoon on {st}. Peak hours for doing something else.",evening:"Evening on {st}. Finally, a reasonable hour.",night:"It's late. This is when {st} makes the most sense."}}},
- block:{label:'Charismatic host',name:'Coco',rate:1.03,pitch:1.04,prefer:['Tessa', 'Moira', 'Zoe', 'Karen'],voice:3,lines:{
-  intro:["{st} is open! Come on in, bring somebody.","This is {st}. Street's closed, speakers are out.","You made it to {st}. Grab a plate, find a spot."],
-  ident:["{st}!","{st}. Everybody's invited.","You're at {st}. Don't just stand there.","{st}. The whole street can hear us.","This is {st}, and the grill's still going."],
-  talk:["It's {dj} at {st}. I see you in the back pretending you don't dance. I see you.","{dj} here. Somebody's uncle just took over the grill, so we're gonna be here a while. More music.","House rules. One, be nice. Two, turn it up. That's it, that's the rules.","If you know the words to the next one, sing. If you don't, sing louder. {st}.","{dj} on {st}. Shout out to everybody holding down a folding chair right now."],
-  song:["Next on {st}, {artist} with {title}. Let's go.","This one's {title}, by {artist}. Make some room.","{artist}! {title}! Hands up."],
-  tod:{morning:"Good morning from {st}. Yes, we start early.",afternoon:"Afternoon at {st}. Best time of day to stand near a speaker.",evening:"Evening at {st}. Lights are on, nobody's leaving.",night:"Late night at {st}. The neighbors gave up and joined in."}}},
+ wave:{label:"Smooth night-drive host",name:"Marlo",rate:0.94,pitch:1.0,prefer:["Samantha", "Ava", "Allison", "Susan", "Google US English"],voice:0,lines:{
+  intro:["This is {st}. I'm {dj}. Settle in, and let the road glow.", "{st}. Neon sounds for a long drive.", "You've drifted onto {st}. Stay a while."],
+  ident:["{st}.", "{st}. Synths, neon, and open road.", "You're cruising with {dj} on {st}.", "{st}. The soundtrack to the drive home.", "This is {st}. Keep gliding."],
+  talk:["{dj} here on {st}. Some music just makes the road feel longer, in the best way. Here's more.", "Lights passing by, a good synth line, nowhere to be. That's {st}.", "I like to think every drive deserves its own soundtrack. I'm {dj}, and this is yours.", "If you're watching the miles roll past, I'm right there with you. {st}.", "No rush. Let the next one carry you. {dj}, on {st}."],
+  song:["Next on {st}, {title}, by {artist}. Drift with it.", "Here's {artist} with {title}.", "Coming up, {title} from {artist}. Lovely, this one."],
+  tod:{"morning": "Morning from {st}. A soft start to the drive.", "afternoon": "Afternoon on {st}. Smooth roads ahead.", "evening": "Evening on {st}. This is our favourite time of day.", "night": "It's late on {st}. Just you, the road, and the glow."}}},
+ pulse:{label:"Bright and warm",name:"Jet",rate:1.04,pitch:1.04,prefer:["Kate", "Serena", "Stephanie", "Martha", "Karen", "Google UK English Female"],voice:1,lines:{
+  intro:["Hello, hello! This is {st}, and I'm {dj}. Let's get you moving.", "You're tuned to {st}. Roads are open, volume's up.", "{st} here, with {dj}. Feel-good music, all drive long."],
+  ident:["This is {st}.", "{st}. The feel-good sound of the open road.", "You're with {dj} on {st}.", "{st}. Keep it bright, keep it moving.", "{st}, soundtracking your drive."],
+  talk:["It's {dj} on {st}. Wherever you're headed, I hope the road's clear and the windows are down. More music coming up.", "Gorgeous driving music, that. I'm {dj}, this is {st}, and I've got plenty more where that came from.", "If you've just joined us, welcome. Seat back, volume up, and let {st} do the rest.", "I love that one. Proper sunshine in a song. Stay with me, {dj}, right here on {st}.", "Quick hello to everyone taking the long way round today. Good choice. This is {st}."],
+  song:["Next on {st}, it's {artist} with {title}.", "Here's a favourite of mine. {title}, from {artist}.", "Coming up, {artist}. This is {title}. Turn it up."],
+  tod:{"morning": "Good morning from {st}! Lovely time for a drive.", "afternoon": "Afternoon, all. {st} keeping your day moving.", "evening": "Good evening from {st}. Golden hour music, coming right up.", "night": "It's late on {st}, and the roads are all yours."}}},
+ xs:{label:"Loud rock devotee",name:"Dez",rate:1.0,pitch:0.94,prefer:["Daniel", "Arthur", "Oliver", "Google UK English Male"],voice:2,lines:{
+  intro:["This is {st}. I'm {dj}. Guitars up, foot down.", "{st}. Loud music for fast roads. Let's go.", "You've found {st}. Hope you like it noisy."],
+  ident:["{st}.", "{st}. Riffs for the road.", "This is {st}, and it's meant to be this loud.", "{dj} with you on {st}.", "{st}. Turn it up or turn around."],
+  talk:["{dj} here on {st}. That one's best played loud enough to worry the neighbours. Here's another.", "Nothing like a big chorus and an empty road. This is {st}. Keep it loud.", "I've been waiting all day to play you this next one. {dj}, {st}. Buckle up.", "If your speakers survived that, well done. Let's test them again. {st}.", "Real drums, real guitars, real loud. That's the whole plan here on {st}."],
+  song:["Next up on {st}, {artist}. This is {title}. Loud, please.", "Here's {title} by {artist}. What a riff.", "{artist} coming up with {title}. Hold on to something."],
+  tod:{"morning": "Morning from {st}. Better than coffee, this.", "afternoon": "Afternoon on {st}. Let's wake the day up.", "evening": "Evening on {st}. The volume only goes up from here.", "night": "Late night on {st}. Empty roads, loud guitars. Perfect."}}},
+ block:{label:"Confident and smooth",name:"Coco",rate:1.0,pitch:1.0,prefer:["Tessa", "Zoe", "Nicky", "Karen", "Samantha"],voice:3,lines:{
+  intro:["Welcome to {st}. I'm {dj}, and I've got you.", "{st} is live. Windows down, bass up.", "This is {st} with {dj}. Let's ride."],
+  ident:["{st}.", "{st}. Beats for the streets.", "You're riding with {dj} on {st}.", "{st}. Bass up, stress down.", "This is {st}. Stay locked in."],
+  talk:["It's your girl {dj} on {st}. That one always gets the head nodding. Keep it right here.", "Shout out to everybody cruising slow just to hear the whole song. I see you. {st}.", "{dj} on {st}. Old school, new school, as long as it knocks. More coming up.", "If the car next to you is nodding along, that's the {st} effect. You're welcome.", "Take the long way home. I'll make it worth it. {dj}, {st}."],
+  song:["Next on {st}, {artist} with {title}. Turn me up.", "This one's {title}, by {artist}. You already know.", "{artist}. {title}. Let it ride."],
+  tod:{"morning": "Good morning from {st}. Start the day with some bounce.", "afternoon": "Afternoon on {st}. Keeping your day smooth.", "evening": "Evening on {st}. This is when it gets good.", "night": "Late night on {st}. City lights and heavy bass."}}},
  classic:{label:'Highway veteran',name:'Hank',rate:0.92,pitch:0.9,prefer:['Aaron', 'Tom', 'Evan', 'Nathan', 'Alex', 'Gordon'],voice:4,lines:{
   intro:["{st}. Buckle up, I've got the map.","This is {st}. Long road, good songs.","Welcome to {st}. Tank's full, let's roll."],
   ident:["{st}.","{st}. Mile after mile.","You're riding with {st}.","{st}, the station that knows every exit.","This is {st}. Keep it between the lines."],
   talk:["{dj} here on {st}. I once drove four hours for a slice of pie. Would do it again. Here's more music.","Rule of the road. Driver picks the music, passenger keeps quiet about it. Lucky for you, I'm doing both jobs.","{dj} on {st}. They say it's about the journey, not the destination. They've never been late for dinner.","If there's a rest stop coming up, take it. Stretch your legs. I'll hold your place. {st}.","Some songs just sound better at highway speed. I can't prove it, but I'm right."],
   song:["Up next on {st}, {artist}, with {title}.","Here's one for the open road. {title}, by {artist}.","{artist} coming up. This is {title}. Roll the window down for it."],
   tod:{morning:"Morning from {st}. Best time to put some miles behind you.",afternoon:"Afternoon on {st}. Plenty of road left.",evening:"Evening on {st}. Headlights on, folks.",night:"Late night on {st}. Just us and the white lines."}}},
- gacha:{label:'Quirky and curious',name:'Pip',rate:1.04,pitch:1.1,prefer:['Rishi', 'Moira', 'Tessa', 'Isha'],voice:5,lines:{
-  intro:["{st}! Turn the crank, see what drops.","This is {st}. I don't know what's next either.","Welcome to {st}, where the playlist is a rumor."],
-  ident:["{st}.","{st}. Anything can happen, and usually does.","You're in {st}. Hold on to something.","{st}. Shake the capsule.","This is {st}, population: whatever's next."],
-  talk:["{dj} here in {st}. I reached into the machine and that's what came out. Let's reach in again.","Fun fact about the next song. I haven't looked yet. That's the fun fact.","{st}, where two matching songs in a row is considered a malfunction.","{dj} on {st}. Somebody asked what genre this station is. I said yes.","No two pulls the same. Well. Sometimes two. {st}."],
-  song:["The capsule says {title}, by {artist}. Ooh.","Next pull, {artist}, {title}. Didn't see that coming.","Up next in {st}, {title} from {artist}. Sure, why not."],
-  tod:{morning:"Good morning, {st}. First pull of the day.",afternoon:"Afternoon in {st}. The machine is warmed up.",evening:"Evening in {st}. Odds are getting weirder.",night:"Late night in {st}. The rare ones come out now."}}}
+ gacha:{label:"Cheerful city-pop fan",name:"Pip",rate:1.03,pitch:1.08,prefer:["Moira", "Samantha", "Ava", "Karen"],voice:5,lines:{
+  intro:["Konnichiwa! This is {st}, and I'm {dj}. Let's go for a drive.", "Welcome to {st}! Bright lights, big melodies.", "{st} is on! J-pop and city pop, all drive long."],
+  ident:["{st}!", "{st}. City pop for city lights.", "You're with {dj} on {st}!", "{st}. Sparkly songs for every road.", "This is {st}. Sing along, nobody's listening."],
+  talk:["{dj} here on {st}! That one makes me want to drive through the city with every light turning green.", "I hope you're smiling, because I am. More music on {st}!", "Some songs feel like neon signs and warm evenings. That's what we play here. {st}.", "If you don't know the words, just hum loudly. That's what I do. {dj}, {st}.", "Thank you for riding with me! Next song, here we go."],
+  song:["Next on {st}, {artist} with {title}! I love this one.", "Here comes {title}, by {artist}.", "{artist} is up next. {title}. So good!"],
+  tod:{"morning": "Ohayo! Good morning from {st}.", "afternoon": "Good afternoon from {st}! Let's keep it bright.", "evening": "Konbanwa! Good evening from {st}.", "night": "It's late on {st}. The city still sparkles."}}}
 };
 Object.keys(PERSONAS).forEach(k=>{PERSONAS[k].key=k});
 const DEFAULT_STATIONS=[
@@ -318,7 +318,7 @@ const DEFAULT_STATIONS=[
  {id:'xs-radio',seek:['rock', 'punk', 'metal', 'alternative rock', 'j-rock'],name:'XS Radio',freq:99.1,tagline:'Rock, punk and metal, played loud.',color:'#d8e04a',persona:'xs',genres:['rock','punk','alternative','grunge','metal','emo','garage','hardcore','j-rock'],discovery:'explorer',dj:'normal',motif:[330,311,247],rules:{artist_repeat_minutes:60,track_repeat_minutes:300}},
  {id:'block-party',seek:['hip hop', 'r&b', 'grime', 'soul', 'dancehall'],name:'Block Party',freq:102.5,tagline:'Hip-hop, R&B and soul for the whole street.',color:'#ff8a3d',persona:'block',genres:['hip','rap','r&b','rnb','grime','soul','funk','reggae','dancehall','garage'],discovery:'familiar',dj:'normal',motif:[294,370,440,370],rules:{artist_repeat_minutes:30,track_repeat_minutes:180}},
  {id:'classic-road-trip',seek:['classic rock', 'country', 'americana', 'southern rock', 'heartland rock'],name:'Classic Road Trip',freq:105.9,tagline:'Familiar songs for open highways.',color:'#c98b5a',persona:'classic',genres:['classic','country','americana','blues','southern','oldies','rock'],discovery:'familiar',dj:'normal',motif:[196,247,294],rules:{artist_repeat_minutes:45,track_repeat_minutes:240}},
- {id:'gacha-city',seek:['j-pop','city pop','anime','future funk','j-rock'],name:'Gacha City',freq:107.7,tagline:'Every genre, every era, no warning.',color:'#b48cff',persona:'gacha',all:true,genres:[],discovery:'explorer',dj:'normal',motif:[659,494,740,587],rules:{artist_repeat_minutes:60,track_repeat_minutes:360}}
+ {id:'gacha-city',seek:['j-pop','city pop','anime','future funk','j-rock'],name:'Gacha City',freq:107.7,tagline:'J-pop, city pop and anime songs for city lights.',color:'#b48cff',persona:'gacha',genres:['j-pop','jpop','j-rock','jrock','city pop','anime','anison','future funk','japanese','vocaloid','kayo'],discovery:'balanced',dj:'normal',motif:[659,494,740,587],rules:{artist_repeat_minutes:45,track_repeat_minutes:240}}
 ];
 const DEMO_TRACKS=[
  ['Test Tone No. 1','The Signal Checks'],['Carrier Wave','The Signal Checks'],['Dial Light','House Band on Standby'],
@@ -697,7 +697,6 @@ function spPanel(){
 function playlistSheet(pid){const p=S.sp.playlists.find(x=>x.id===pid);if(!p)return;
   openSheet(`<h2>${esc(p.name)}</h2><h3>Feeds these stations</h3>
    ${stations().filter(s=>!s.all).map(s=>`<label class="chk"><input type="checkbox" data-st="${s.id}" id="ps-${s.id}" ${(S.sp.sources[s.id]||[]).includes(pid)?'checked':''}> <span style="color:${s.color};font-weight:600">${esc(s.name)}</span></label>`).join('')}
-   <div class="s" style="color:var(--mute);font-size:13px;margin-top:8px">Gacha City plays every song from every playlist you use.</div>
    <div class="btns" style="margin-top:14px"><button class="btn pri" data-act="savespl" data-id="${esc(pid)}">Save</button><button class="btn" data-act="close">Cancel</button></div>`)}
 
 /* DJ crate-digging: search Spotify for songs that fit a station and save them as a new playlist in the listener's account */

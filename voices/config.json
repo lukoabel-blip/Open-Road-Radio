@@ -2,23 +2,130 @@
   "openai": {
     "model": "gpt-4o-mini-tts",
     "personas": {
-      "wave":    { "voice": "sage",  "instructions": "You are Marlo, a late-afternoon radio host. Warm, unhurried, lightly amused, like a friend talking from the passenger seat. Natural pauses, no announcer voice, never salesy." },
-      "pulse":   { "voice": "nova",  "instructions": "You are Jet, an upbeat radio host. Bright, quick and confident with real energy, but conversational, never a shouting commercial announcer." },
-      "xs":      { "voice": "ash",   "instructions": "You are Dez, host of an alternative station. Dry, deadpan, understated sarcasm, low energy on purpose. Sound like you mean it but refuse to oversell it." },
-      "block":   { "voice": "coral", "instructions": "You are Coco, hosting a block party on air. Charismatic, playful, smiling as you talk, talking to a crowd of friends. Rhythm and warmth." },
-      "classic": { "voice": "onyx",  "instructions": "You are Hank, a seasoned highway radio host. Relaxed, gravelly warmth, a storyteller's pacing, gentle humor. Unhurried, like a long drive." },
-      "gacha":   { "voice": "fable", "instructions": "You are Pip, a quirky, curious radio host. Light, spontaneous, a little mischievous, genuinely delighted by surprises. Quick but clear." }
+      "wave": {
+        "voice": "sage",
+        "instructions": "You are Marlo, late-night host of a synthwave station. Smooth, calm, a little dreamy, speaking softly to one driver on an empty road. Unhurried, warm, never salesy."
+      },
+      "pulse": {
+        "voice": "nova",
+        "instructions": "You are Jet, host of a feel-good pop station at a driving festival. Bright, warm and friendly, genuinely delighted by the music, smiling as you speak. Upbeat but natural, never a shouting announcer."
+      },
+      "xs": {
+        "voice": "ash",
+        "instructions": "You are Dez, host of a rock station. A passionate rock fan who loves loud guitars: energetic, blunt, a bit gruff, grinning. Sounds like a musician talking between songs, not an announcer."
+      },
+      "block": {
+        "voice": "coral",
+        "instructions": "You are Coco, host of a hip-hop and R&B station. Confident, smooth and charismatic, relaxed rhythm, talking to friends in the car. Cool, never forced."
+      },
+      "classic": {
+        "voice": "onyx",
+        "instructions": "You are Hank, a seasoned highway radio host. Relaxed, gravelly warmth, a storyteller's pacing, gentle humor. Unhurried, like a long drive."
+      },
+      "gacha": {
+        "voice": "shimmer",
+        "instructions": "You are Pip, cheerful host of a J-pop and city pop station. Sweet, bright and enthusiastic, light and musical, pronounces the Japanese greetings naturally. Quick but clear."
+      }
     }
   },
   "elevenlabs": {
     "model": "eleven_multilingual_v2",
     "personas": {
-      "wave":    { "voice": "" },
-      "pulse":   { "voice": "" },
-      "xs":      { "voice": "" },
-      "block":   { "voice": "" },
-      "classic": { "voice": "" },
-      "gacha":   { "voice": "" }
+      "wave": {
+        "voice": "",
+        "gender": "female",
+        "accent": [
+          "american",
+          "british"
+        ],
+        "words": [
+          "calm",
+          "soft",
+          "smooth",
+          "warm",
+          "soothing",
+          "narrat"
+        ]
+      },
+      "pulse": {
+        "voice": "",
+        "gender": "female",
+        "accent": [
+          "british",
+          "english"
+        ],
+        "words": [
+          "upbeat",
+          "warm",
+          "friendly",
+          "bright",
+          "cheerful",
+          "conversational"
+        ]
+      },
+      "xs": {
+        "voice": "",
+        "gender": "male",
+        "accent": [
+          "scottish",
+          "british",
+          "irish"
+        ],
+        "words": [
+          "rough",
+          "raspy",
+          "intense",
+          "energetic",
+          "gruff",
+          "casual"
+        ]
+      },
+      "block": {
+        "voice": "",
+        "gender": "female",
+        "accent": [
+          "american",
+          "british"
+        ],
+        "words": [
+          "confident",
+          "expressive",
+          "sassy",
+          "smooth",
+          "social"
+        ]
+      },
+      "classic": {
+        "voice": "",
+        "gender": "male",
+        "accent": [
+          "american"
+        ],
+        "words": [
+          "deep",
+          "gravelly",
+          "old",
+          "mature",
+          "wise",
+          "narrat"
+        ]
+      },
+      "gacha": {
+        "voice": "",
+        "gender": "female",
+        "accent": [
+          "japanese",
+          "american"
+        ],
+        "words": [
+          "cheerful",
+          "young",
+          "playful",
+          "sweet",
+          "bright",
+          "animat"
+        ]
+      }
     }
   }
 }
