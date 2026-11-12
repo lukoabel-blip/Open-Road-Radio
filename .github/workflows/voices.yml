@@ -1,0 +1,38 @@
+name: Generate DJ voices
+
+# Records the DJ lines with a voice service and commits the clips to voices/.
+# Needs a repository secret: OPENAI_API_KEY or ELEVENLABS_API_KEY.
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: Voice service
+        type: choice
+        options: [openai, elevenlabs]
+        default: openai
+      force:
+        description: Re-record every line (not just new ones)
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record lines
+        env:
+          PROVIDER: ${{ inputs.provider }}
+          FORCE: ${{ inputs.force }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: node scripts/generate-voices.mjs
+      - name: Commit recordings
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add voices
+          git diff --cached --quiet && echo "Nothing new to commit" || (git commit -m "Record DJ voice clips" && git push)

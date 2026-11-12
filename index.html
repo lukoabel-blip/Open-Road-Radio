@@ -401,18 +401,30 @@ function refill(reset){
 }
 
 /* ---------- DJ ---------- */
+/* Recorded DJ clips: voices/manifest.json maps a line (by hash of persona + spoken text) to an audio file in this site. */
+let CLIPS={};const djAu=new Audio();djAu.preload='auto';
+const clipFor=(k,text)=>CLIPS[hash(k+'|'+text)]||null;
+const hasClips=k=>Object.values(CLIPS).some(u=>u.indexOf('voices/'+k+'/')===0);
+async function loadClips(){try{const r=await fetch('voices/manifest.json',{cache:'no-cache'});if(!r.ok)return;const j=await r.json();CLIPS=(j&&j.clips)||{};if($('v-stations').classList.contains('show'))renderStations()}catch(e){}}
 function partOfDay(){const h=new Date().getHours();return h<5?'night':h<12?'morning':h<17?'afternoon':h<21?'evening':'night'}
 function nextUp(){if(djNext)return djNext;if(spMode()){const b=spBatch[spIdx+1];return b&&trackById(b.trackId)}const q=queue.find(q=>q.type==='music');return q&&trackById(q.trackId)}
 function buildScript(kind){
   const st=cur(),p=PERSONAS[st.persona]||PERSONAS.wave,L=p.lines;
   const nt=nextUp();
+  const fill=t=>t.replace(/\{st\}/g,st.name).replace(/\{dj\}/g,p.name).replace(/\{title\}/g,nt?nt.title:'').replace(/\{artist\}/g,nt?nt.artist:'');
+  const rec0=hasClips(p.key);   // with recorded voices, stay on recorded lines so the host never changes voice mid-show
   let pool=kind,text;
-  if(kind==='talk'){const r=rand();
-    if(r<0.22)text=L.tod[partOfDay()];
-    else if(r<0.6&&nt&&!nt.demo&&nt.artist&&nt.title)pool='song'}
+  if(kind==='talk'){const r=rand(),tod=L.tod[partOfDay()];
+    if(r<0.22&&(!rec0||clipFor(p.key,fill(tod))))text=tod;
+    else if(!rec0&&r<0.6&&nt&&!nt.demo&&nt.artist&&nt.title)pool='song'}
   if(!text){const key=st.id+':'+pool,rec=S.scripts[key]||(S.scripts[key]=[]);
-    const i=ORR.pickScript(L[pool].length,rec,rand);rec.push(i);if(rec.length>8)rec.shift();text=L[pool][i]}
-  return {text:text.replace(/\{st\}/g,st.name).replace(/\{dj\}/g,p.name).replace(/\{title\}/g,nt?nt.title:'').replace(/\{artist\}/g,nt?nt.artist:''),p}}
+    const have=L[pool].map((t,i)=>i).filter(i=>clipFor(p.key,fill(L[pool][i])));
+    let i;
+    if(have.length){const avoid=rec.slice(-Math.floor(have.length/2)),c=have.filter(x=>!avoid.includes(x));i=(c.length?c:have)[Math.floor(rand()*(c.length||have.length))]}
+    else i=ORR.pickScript(L[pool].length,rec,rand);
+    rec.push(i);if(rec.length>8)rec.shift();text=L[pool][i]}
+  text=fill(text);
+  return {text,p,clip:clipFor(p.key,text)}}
 /* Voice choice. Phones ship a mix of decent, robotic and joke voices; rank them and let the listener override per DJ. */
 const V_JOKE=/^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Deranged|Hysterical|Pipe Organ|Junior|Ralph|Kathy|Fred|Princess)\b/i;
 const V_ROBOT=/^(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley)\b/i;
@@ -424,6 +436,8 @@ function voiceFor(p){const vs=voiceList();if(!vs.length)return null;
   for(const n of p.prefer||[]){const v=vs.find(x=>x.name.toLowerCase().startsWith(n.toLowerCase()));if(v)return v}
   const good=vs.filter(v=>!V_ROBOT.test(v.name));return (good.length?good:vs)[p.voice%(good.length||vs.length)]}
 function previewVoice(k){const p=PERSONAS[k],st=stations().find(s=>s.persona===k)||cur();
+  const line=p.lines.ident[1].replace(/\{st\}/g,st.name).replace(/\{dj\}/g,p.name),clip=clipFor(k,line);
+  if(clip){try{window.speechSynthesis&&speechSynthesis.cancel();djAu.onended=djAu.onerror=null;djAu.src=clip;const pr=djAu.play();pr&&pr.catch(()=>{})}catch(e){}return}
   try{const ss=speechSynthesis;ss.cancel();const u=new SpeechSynthesisUtterance(p.lines.ident[1].replace(/\{st\}/g,st.name).replace(/\{dj\}/g,p.name)+' I\'m '+p.name+'.');
     u.rate=p.rate;u.pitch=p.pitch;const v=voiceFor(p);if(v){u.voice=v;u.lang=v.lang}ss.speak(u)}catch(e){toast('This browser has no speech voices.')}}
 function sting(st){return new Promise(res0=>{
@@ -435,10 +449,15 @@ function sting(st){return new Promise(res0=>{
       e.gain.setValueAtTime(0,t0+i*0.13);e.gain.linearRampToValueAtTime(1,t0+i*0.13+0.02);e.gain.exponentialRampToValueAtTime(0.001,t0+i*0.13+0.5);
       o.connect(e);e.connect(g);o.start(t0+i*0.13);o.stop(t0+i*0.13+0.55)});
     setTimeout(res,(st.motif||[1,1,1]).length*130+350)}catch(e){res()}})}
-function speak(text,p){return new Promise(res=>{
+function speak(text,p,clip){return new Promise(res=>{
   const ss=window.speechSynthesis,readMs=Math.min(6000,1400+text.length*45);
-  let done=false,t1,t2;const fin=()=>{if(done)return;done=true;clearTimeout(t1);clearTimeout(t2);res()};
-  cancelSpeech=()=>{try{ss&&ss.cancel()}catch(e){}fin()};
+  let done=false,t1,t2;const fin=()=>{if(done)return;done=true;clearTimeout(t1);clearTimeout(t2);djAu.onended=djAu.onerror=null;res()};
+  cancelSpeech=()=>{try{ss&&ss.cancel()}catch(e){}try{djAu.pause()}catch(e){}fin()};
+  if(clip&&S.settings.voice){ // a recorded human-sounding take exists for this line
+    const fallback=()=>{djAu.onended=djAu.onerror=null;clearTimeout(t2);speak(text,p,null).then(fin)};
+    try{djAu.onended=fin;djAu.onerror=fallback;djAu.src=clip;try{djAu.volume=S.settings.volume}catch(e){}
+      t2=setTimeout(fin,25000);const pr=djAu.play();pr&&pr.catch(fallback)}catch(e){fallback()}
+    return}
   if(!S.settings.voice||!ss||typeof SpeechSynthesisUtterance==='undefined'){t2=setTimeout(fin,readMs);return}
   try{const u=new SpeechSynthesisUtterance(text);u.rate=p.rate;u.pitch=p.pitch;u.volume=S.settings.volume;
     const v=voiceFor(p);if(v){u.voice=v;u.lang=v.lang}
@@ -449,17 +468,18 @@ function speak(text,p){return new Promise(res=>{
 async function playDj(item,my){
   const st=cur();
   if(item.kind!=='intro'&&(document.hidden||Date.now()-lastDjAt<60000))return;   // never stall a locked phone; keep breaks spaced out
-  const {text,p}=buildScript(item.kind);
+  const {text,p,clip}=buildScript(item.kind);
   djText=text;render();
   log('dj',`${p.name}: ${text}`);lastDjAt=Date.now();
   await sting(st); if(my!==token)return;
-  await speak(text,p)}
+  await speak(text,p,clip)}
 
 /* ---------- playback ---------- */
 function unlock(){
   if(unlocked)return;unlocked=true;
   try{const A=window.AudioContext||window.webkitAudioContext;if(A){actx=new A();actx.resume&&actx.resume()}}catch(e){}
   try{if(window.speechSynthesis&&S.settings.voice){const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u)}}catch(e){}
+  try{const su=URL.createObjectURL(new Blob([ORR.synthDemo(1,0.1).slice(0,44+2200)],{type:'audio/wav'}));djAu.src=su;const pr=djAu.play();pr&&pr.catch(()=>{})}catch(e){}
   if(spMode()){try{actx&&actx.suspend()}catch(e){}return}
   try{silentUrl=URL.createObjectURL(new Blob([ORR.synthDemo(1,0.1).slice(0,44+2200)],{type:'audio/wav'}));au.dataset.tid='';au.src=silentUrl;const pr=au.play();pr&&pr.catch(()=>{})}catch(e){}
 }
@@ -858,7 +878,7 @@ function renderStations(){
     </div>${s.custom?`<div class="btns" style="margin-top:10px"><button class="btn sm danger" data-act="delstation" data-id="${s.id}">Delete station</button></div>`:''}</div>`}).join('')}</div>
    <div class="btns" style="margin-top:14px"><button class="btn pri" data-act="newstation">Build a new station</button></div>
    <h3>DJ voices</h3>
-   <div class="note">These are the voices built into this phone's browser. Pick one per host and tap Hear to audition it.</div>
+   <div class="note">${Object.keys(CLIPS).length?`<b>${Object.keys(CLIPS).length} recorded lines installed.</b> Hosts with recordings use them; the phone voice below is only the fallback.`:'These are the voices built into this phone\'s browser. Recorded, human-sounding voices replace them once the Generate DJ voices action has run in the GitHub repo.'} Tap Hear to audition a host.</div>
    <div class="list" style="margin-top:8px">${Object.entries(PERSONAS).map(([k,p])=>{const vs=voiceList(),auto=voiceFor({key:'',prefer:p.prefer,voice:p.voice});
      return `<div class="row"><label class="field" style="flex:1">${esc(p.name)} · ${esc(p.label)}<select data-voice="${k}" id="vo-${k}"><option value="">Automatic${auto?' ('+esc(auto.name)+')':''}</option>${vs.map(v=>`<option value="${esc(v.name)}"${S.voices[k]===v.name?' selected':''}>${esc(v.name)} · ${esc(v.lang)}</option>`).join('')}</select></label><button class="btn sm" data-act="hear" data-id="${k}">Hear</button></div>`}).join('')}</div>
    <h3>Radio settings</h3>
@@ -967,6 +987,7 @@ document.addEventListener('input',e=>{
   render();
   if(S.tracks.length){const keys=await idbKeys();const have=new Set(keys||[]);S.tracks.forEach(t=>{t.available=have.has(t.id)||blobs.has(t.id)});render()}
   try{if(window.speechSynthesis){speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{if($('v-stations').classList.contains('show'))renderStations()}}}catch(e){}
+  loadClips();
   await spCallback();
   if(spMode()&&S.sp.inpage)spInitPlayer();
 })();
