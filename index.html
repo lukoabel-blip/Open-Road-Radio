@@ -313,12 +313,12 @@ const PERSONAS={
 };
 Object.keys(PERSONAS).forEach(k=>{PERSONAS[k].key=k});
 const DEFAULT_STATIONS=[
- {id:'wave-fm',name:'Wave FM',freq:88.3,tagline:'Relaxed, melodic, windows down.',color:'#5fd0c5',persona:'wave',genres:['indie','alternative','chill','ambient','dream','lo-fi','lofi','folk','soft','acoustic'],discovery:'balanced',dj:'normal',motif:[392,494,587],rules:{artist_repeat_minutes:45,track_repeat_minutes:240}},
- {id:'pulse-radio',name:'Pulse Radio',freq:94.7,tagline:'Upbeat, fast, always moving.',color:'#ff5d8f',persona:'pulse',genres:['pop','electro','dance','edm','house','techno','synth'],discovery:'balanced',dj:'normal',motif:[523,659,784,1047],rules:{artist_repeat_minutes:45,track_repeat_minutes:180}},
- {id:'xs-radio',name:'XS Radio',freq:99.1,tagline:'Alternative, edgy, deeper cuts.',color:'#d8e04a',persona:'xs',genres:['punk','alternative','grunge','metal','emo','garage','experimental','hardcore','noise','indie rock'],discovery:'explorer',dj:'normal',motif:[330,311,247],rules:{artist_repeat_minutes:60,track_repeat_minutes:300}},
- {id:'block-party',name:'Block Party',freq:102.5,tagline:'Rhythm, throwbacks, good company.',color:'#ff8a3d',persona:'block',genres:['hip','rap','funk','r&b','rnb','soul','disco','reggaeton','motown'],discovery:'familiar',dj:'normal',motif:[294,370,440,370],rules:{artist_repeat_minutes:30,track_repeat_minutes:180}},
- {id:'classic-road-trip',name:'Classic Road Trip',freq:105.9,tagline:'Familiar songs for open highways.',color:'#c98b5a',persona:'classic',genres:['classic','country','americana','blues','southern','oldies','rock'],discovery:'familiar',dj:'normal',motif:[196,247,294],rules:{artist_repeat_minutes:45,track_repeat_minutes:240}},
- {id:'gacha-city',name:'Gacha City',freq:107.7,tagline:'Every genre, every era, no warning.',color:'#b48cff',persona:'gacha',all:true,genres:[],discovery:'explorer',dj:'normal',motif:[659,494,740,587],rules:{artist_repeat_minutes:60,track_repeat_minutes:360}}
+ {id:'wave-fm',seek:['synthwave', 'retrowave', 'chillwave', 'outrun', 'vaporwave'],name:'Wave FM',freq:88.3,tagline:'Synthwave and neon for night drives.',color:'#5fd0c5',persona:'wave',genres:['synthwave','retrowave','chillwave','vaporwave','outrun','synth-pop','indie','chill','ambient','dream','lo-fi','lofi'],discovery:'balanced',dj:'normal',motif:[392,494,587],rules:{artist_repeat_minutes:45,track_repeat_minutes:240}},
+ {id:'pulse-radio',seek:['pop', 'nu disco', 'synthpop', 'indietronica', 'alternative dance'],name:'Pulse Radio',freq:94.7,tagline:'Pop, nu-disco and synthpop on the move.',color:'#ff5d8f',persona:'pulse',genres:['pop','nu-disco','nu disco','disco','electro','dance','indietronica','new wave'],discovery:'balanced',dj:'normal',motif:[523,659,784,1047],rules:{artist_repeat_minutes:45,track_repeat_minutes:180}},
+ {id:'xs-radio',seek:['rock', 'punk', 'metal', 'alternative rock', 'j-rock'],name:'XS Radio',freq:99.1,tagline:'Rock, punk and metal, played loud.',color:'#d8e04a',persona:'xs',genres:['rock','punk','alternative','grunge','metal','emo','garage','hardcore','j-rock'],discovery:'explorer',dj:'normal',motif:[330,311,247],rules:{artist_repeat_minutes:60,track_repeat_minutes:300}},
+ {id:'block-party',seek:['hip hop', 'r&b', 'grime', 'soul', 'dancehall'],name:'Block Party',freq:102.5,tagline:'Hip-hop, R&B and soul for the whole street.',color:'#ff8a3d',persona:'block',genres:['hip','rap','r&b','rnb','grime','soul','funk','reggae','dancehall','garage'],discovery:'familiar',dj:'normal',motif:[294,370,440,370],rules:{artist_repeat_minutes:30,track_repeat_minutes:180}},
+ {id:'classic-road-trip',seek:['classic rock', 'country', 'americana', 'southern rock', 'heartland rock'],name:'Classic Road Trip',freq:105.9,tagline:'Familiar songs for open highways.',color:'#c98b5a',persona:'classic',genres:['classic','country','americana','blues','southern','oldies','rock'],discovery:'familiar',dj:'normal',motif:[196,247,294],rules:{artist_repeat_minutes:45,track_repeat_minutes:240}},
+ {id:'gacha-city',seek:['j-pop','city pop','anime','future funk','j-rock'],name:'Gacha City',freq:107.7,tagline:'Every genre, every era, no warning.',color:'#b48cff',persona:'gacha',all:true,genres:[],discovery:'explorer',dj:'normal',motif:[659,494,740,587],rules:{artist_repeat_minutes:60,track_repeat_minutes:360}}
 ];
 const DEMO_TRACKS=[
  ['Test Tone No. 1','The Signal Checks'],['Carrier Wave','The Signal Checks'],['Dial Light','House Band on Standby'],
@@ -557,7 +557,7 @@ function mediaMeta(t){try{if(!('mediaSession' in navigator))return;const st=cur(
 
 
 /* ---------- Spotify: the radio picks the songs, the Spotify app plays them ---------- */
-const SP_SCOPES='streaming user-read-email user-read-private playlist-read-private playlist-read-collaborative user-library-read user-read-playback-state user-modify-playback-state user-read-currently-playing';
+const SP_SCOPES='streaming user-read-email user-read-private playlist-modify-private playlist-modify-public playlist-read-private playlist-read-collaborative user-library-read user-read-playback-state user-modify-playback-state user-read-currently-playing';
 const SP_ASLEEP='Spotify is asleep. Open the Spotify app, play any song for a moment, then come back here and press play.';
 const spRedirect=()=>location.origin+location.pathname;
 const spCanRun=()=>{try{return location.protocol==='https:'&&window.self===window.top}catch(e){return false}};
@@ -699,6 +699,45 @@ function playlistSheet(pid){const p=S.sp.playlists.find(x=>x.id===pid);if(!p)ret
    ${stations().filter(s=>!s.all).map(s=>`<label class="chk"><input type="checkbox" data-st="${s.id}" id="ps-${s.id}" ${(S.sp.sources[s.id]||[]).includes(pid)?'checked':''}> <span style="color:${s.color};font-weight:600">${esc(s.name)}</span></label>`).join('')}
    <div class="s" style="color:var(--mute);font-size:13px;margin-top:8px">Gacha City plays every song from every playlist you use.</div>
    <div class="btns" style="margin-top:14px"><button class="btn pri" data-act="savespl" data-id="${esc(pid)}">Save</button><button class="btn" data-act="close">Cancel</button></div>`)}
+
+/* DJ crate-digging: search Spotify for songs that fit a station and save them as a new playlist in the listener's account */
+async function spCurate(sid){
+  const st=station(sid),p=PERSONAS[st.persona]||PERSONAS.wave;
+  if(!spMode()){toast('Connect Spotify in Music first.');return}
+  const have=new Set(SPT.map(t=>t.id)),pool=ORR.poolFor(st,SPT);
+  const genres=st.seek&&st.seek.length?st.seek:st.all?stations().flatMap(x=>x.seek||[]):[];
+  const artists=[...new Set(pool.map(t=>t.artist).filter(Boolean))];
+  const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+  // Familiar stations lean on artists already in rotation; Explorer stations lean on the genre at large.
+  const share={familiar:0.7,balanced:0.45,explorer:0.2}[st.discovery]||0.45;
+  const nA=!artists.length?0:genres.length?Math.min(artists.length,Math.round(8*share)):Math.min(artists.length,8),nG=genres.length?Math.max(2,8-nA):0;
+  const gs=shuffle(genres.slice());
+  const qs=shuffle(artists.slice()).slice(0,nA).map(a=>({q:'artist:"'+a.replace(/"/g,'')+'"',off:0}))
+    .concat(Array.from({length:nG},(_,i)=>({q:'genre:"'+gs[i%gs.length]+'"',plain:gs[i%gs.length],off:Math.floor(rand()*5)*10})));
+  if(!qs.length){toast(st.name+' needs a few songs first, so '+p.name+' knows the sound. Give it a playlist in Music.');return}
+  toast(p.name+' is digging through Spotify…');
+  try{
+    const found=[],seen=new Set();
+    for(const x of qs){
+      let j=await sp('GET','/search?type=track&limit=10&offset='+x.off+'&q='+encodeURIComponent(x.q));
+      if(x.plain&&!((j&&j.tracks&&j.tracks.items)||[]).length)j=await sp('GET','/search?type=track&limit=10&q='+encodeURIComponent(x.plain));
+      for(const tr of ((j&&j.tracks&&j.tracks.items)||[])){
+        if(!tr||tr.is_local||!/^spotify:track:/.test(tr.uri||'')||have.has(tr.uri)||seen.has(tr.uri))continue;seen.add(tr.uri);
+        found.push({id:tr.uri,sp:true,title:tr.name,artist:((tr.artists||[])[0]||{}).name||'',dur:tr.duration_ms||0,pl:[],plays:0,fav:false,stations:[]})}}
+    const per={},picks=shuffle(found).filter(t=>{const a=t.artist.toLowerCase();per[a]=(per[a]||0)+1;return per[a]<=2}).slice(0,30);
+    if(picks.length<5){toast('Spotify search came back nearly empty for '+st.name+'. Try again in a moment.');return}
+    const name=st.name+' · '+p.name+'\'s picks · '+new Date().toLocaleDateString([], {month:'short',day:'numeric'});
+    const pl=await sp('POST','/me/playlists',{name,description:'Picked for '+st.name+' by Open Road Radio.',public:false});
+    if(!pl||!pl.id)throw new Error('no playlist came back');
+    await sp('POST','/playlists/'+pl.id+'/items',{uris:picks.map(t=>t.id)});
+    picks.forEach(t=>{t.pl=[pl.id];SPT.push(t)});
+    S.sp.playlists.splice(1,0,{id:pl.id,name,total:picks.length});S.sp.loaded[pl.id]=picks.length;
+    S.sp.sources[st.id]=(S.sp.sources[st.id]||[]).concat(pl.id);
+    spAssign();log('dj',p.name+' built a playlist: '+name+' ('+picks.length+' songs)',st.id);render();
+    openSheet(`<h2>${esc(p.name)}'s picks</h2><div class="s" style="color:var(--mute)">${picks.length} new songs saved to your Spotify as “${esc(name)}” and added to ${esc(st.name)}. <a href="https://open.spotify.com/playlist/${esc(pl.id)}">Open in Spotify</a></div>
+      <div class="list" style="margin-top:12px">${picks.map(t=>`<div class="row"><div class="grow"><div class="t">${esc(t.title)}</div><div class="s">${esc(t.artist)}</div></div></div>`).join('')}</div>
+      <div class="btns" style="margin-top:14px"><button class="btn pri" data-act="close">Done</button></div>`)}
+  catch(e){toast(e.status===403?'Spotify needs a new permission to create playlists. In Music, disconnect and connect again.':e.auth||e.status===429?spMsg(e):'Spotify would not build the playlist: '+e.message)}}
 
 /* playback */
 function spStop(){clearTimeout(spPollT);clearTimeout(spEdgeT);spBatch=[];spIdx=-1;spExt=null;spEdgeFor='';spStale=false;spBusy=false}
@@ -875,7 +914,7 @@ function renderStations(){
      <label class="field">DJ talks<select data-set="dj" data-id="${s.id}" id="dj-${s.id}">${opt('off',s.dj,'Never')}${opt('rare',s.dj,'Rarely')}${opt('normal',s.dj,'Sometimes')}${opt('chatty',s.dj,'Often')}</select></label>
      <label class="field">Same artist again after<select data-set="artist" data-id="${s.id}" id="ar-${s.id}">${[15,30,45,60,90].map(m=>opt(m,s.rules.artist_repeat_minutes,m+' min')).join('')}</select></label>
      <label class="field">Same song again after<select data-set="track" data-id="${s.id}" id="tr-${s.id}">${[60,120,180,240,300,360,480].map(m=>opt(m,s.rules.track_repeat_minutes,(m/60)+' h')).join('')}</select></label>
-    </div>${s.custom?`<div class="btns" style="margin-top:10px"><button class="btn sm danger" data-act="delstation" data-id="${s.id}">Delete station</button></div>`:''}</div>`}).join('')}</div>
+    </div>${(spMode()||s.custom)?`<div class="btns" style="margin-top:10px">${spMode()?`<button class="btn sm" data-act="curate" data-id="${s.id}">Have ${esc(p.name)} build a playlist</button>`:''}${s.custom?`<button class="btn sm danger" data-act="delstation" data-id="${s.id}">Delete station</button>`:''}</div>`:''}</div>`}).join('')}</div>
    <div class="btns" style="margin-top:14px"><button class="btn pri" data-act="newstation">Build a new station</button></div>
    <h3>DJ voices</h3>
    <div class="note">${Object.keys(CLIPS).length?`<b>${Object.keys(CLIPS).length} recorded lines installed.</b> Hosts with recordings use them; the phone voice below is only the fallback.`:'These are the voices built into this phone\'s browser. Recorded, human-sounding voices replace them once the Generate DJ voices action has run in the GitHub repo.'} Tap Hear to audition a host.</div>
@@ -953,6 +992,7 @@ document.addEventListener('click',e=>{
   else if(a==='spl')playlistSheet(id);
   else if(a==='savespl')savePlaylist(id);
   else if(a==='hear')previewVoice(id);
+  else if(a==='curate')spCurate(id);
   else if(a==='newstation')stationSheet();
   else if(a==='savestation'){const name=$('nsname').value.trim();if(!name){toast('Give the station a name.');return}
     const used=stations().map(s=>s.freq),freq=FREE_FREQS.find(f=>!used.includes(f));if(!freq){toast('The dial is full. Delete a custom station first.');return}
