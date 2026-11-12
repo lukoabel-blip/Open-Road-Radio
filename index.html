@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Road Radio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a car-radio faceplate. Tuner band on top, big station readout, presets, transport. One dark dashboard world. */
+:root{
+  color-scheme:dark;
+  --ink:#0e1a20; --panel:#16272f; --panel2:#1d333d; --line:#2b4550;
+  --text:#ece6d6; --mute:#8fa5ab; --amber:#ffb23e; --bad:#ff6b5e;
+  --st:#5fd0c5;
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"Barlow","Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ink);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.4}
+body{padding-bottom:84px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.wrap{max-width:520px;margin:0 auto;padding:0 16px}
+header.top{display:flex;align-items:center;justify-content:space-between;padding:14px 0 10px}
+.mark{font-family:var(--display);font-weight:800;letter-spacing:.14em;font-size:17px}
+.mark span{color:var(--amber)}
+.pill{font-family:var(--mono);font-size:11px;letter-spacing:.12em;padding:4px 9px;border:1px solid var(--line);border-radius:99px;color:var(--mute);display:flex;gap:6px;align-items:center}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--mute)}
+.pill.on{color:var(--text);border-color:var(--bad)} .pill.on i{background:var(--bad);box-shadow:0 0 8px var(--bad)}
+.view{display:none}.view.show{display:block}
+
+/* Tuner */
+.tuner{background:linear-gradient(#1a2e37,#13232a);border:1px solid var(--line);border-radius:10px;padding:10px 12px 6px;position:relative}
+.band{position:relative;height:46px}
+.ticks{position:absolute;left:0;right:0;top:6px;height:16px;background:repeating-linear-gradient(90deg,var(--mute) 0 1px,transparent 1px calc(100%/44));opacity:.45}
+.ticks.major{height:24px;top:2px;background:repeating-linear-gradient(90deg,var(--text) 0 1px,transparent 1px calc(100%/11));opacity:.5}
+.nums{position:absolute;left:0;right:0;bottom:0;font-family:var(--mono);font-size:10px;color:var(--mute)}
+.nums span{position:absolute;transform:translateX(-50%)}
+.pip{position:absolute;top:-4px;width:30px;height:36px;margin-left:-15px;background:none;border:0;padding:0}
+.pip::after{content:"";position:absolute;left:11px;top:12px;width:8px;height:8px;border-radius:50%;background:var(--c);opacity:.85}
+.pip.cur::after{box-shadow:0 0 10px var(--c);opacity:1}
+.needle{position:absolute;top:-6px;bottom:8px;width:2px;margin-left:-1px;background:var(--amber);box-shadow:0 0 10px var(--amber);transition:left .5s cubic-bezier(.3,1.3,.5,1)}
+@media (prefers-reduced-motion:reduce){.needle{transition:none}}
+.readout{padding:18px 2px 6px}
+.freq{font-family:var(--mono);color:var(--amber);font-size:14px;letter-spacing:.08em}
+.stname{font-family:var(--display);font-weight:800;font-size:clamp(46px,15vw,72px);line-height:.92;text-transform:uppercase;color:var(--st);margin:4px 0 6px;text-wrap:balance;overflow-wrap:anywhere}
+.tag{color:var(--mute);font-size:15px}
+
+.presets{display:flex;gap:8px;overflow-x:auto;padding:14px 0 4px;scrollbar-width:none}
+.presets::-webkit-scrollbar{display:none}
+.preset{flex:0 0 auto;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px 8px;text-align:left;min-width:86px}
+.preset b{display:block;font-family:var(--mono);font-weight:500;font-size:10px;color:var(--mute)}
+.preset span{font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+.preset.cur{border-color:var(--c);box-shadow:inset 0 -3px 0 var(--c)}
+
+.now{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--st);border-radius:10px;padding:14px}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--mute);text-transform:uppercase;display:flex;justify-content:space-between;gap:8px}
+.title{font-size:21px;font-weight:600;margin-top:6px;overflow-wrap:anywhere}
+.artist{color:var(--mute);overflow-wrap:anywhere}
+.djline{font-size:18px;font-style:italic;margin-top:6px}
+.bar{height:4px;background:var(--panel2);border-radius:2px;margin-top:12px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--st)}
+.times{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:4px;font-variant-numeric:tabular-nums}
+.fav{background:none;border:0;padding:0 2px;font-size:18px;color:var(--mute);line-height:1}
+.fav.on{color:var(--amber)}
+
+.transport{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:18px 0 8px}
+.tb{background:var(--panel);border:1px solid var(--line);border-radius:10px;height:54px;flex:1;display:grid;place-items:center;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--mute)}
+.tb svg{width:22px;height:22px;fill:var(--text)}
+.tb.big{flex:1.5;height:66px;background:var(--st);border-color:var(--st)}
+.tb.big svg{width:30px;height:30px;fill:var(--ink)}
+.tb:active{transform:translateY(1px)}
+.vol{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;color:var(--mute);margin:6px 0}
+.vol input{flex:1;accent-color:var(--amber)}
+.note{font-size:14px;color:var(--mute);border:1px dashed var(--line);border-radius:8px;padding:10px 12px;margin-top:12px}
+.note.err{border-color:var(--bad);color:var(--text)}
+h2{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:.04em;text-transform:uppercase;margin:18px 0 8px}
+h3{font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin:20px 0 8px}
+.list{display:flex;flex-direction:column;gap:6px}
+.row{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;text-align:left}
+.row .grow{flex:1;min-width:0}
+.row .t{font-weight:500;overflow-wrap:anywhere}
+.row .s{font-size:13px;color:var(--mute);overflow-wrap:anywhere}
+.row.dim{opacity:.5}
+.tagk{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--mute);border:1px solid var(--line);border-radius:4px;padding:2px 5px;white-space:nowrap}
+.dots{display:flex;gap:3px;flex-wrap:wrap;max-width:44px}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-weight:500;min-height:44px}
+.btn.pri{background:var(--amber);border-color:var(--amber);color:var(--ink);font-weight:600}
+.btn.sm{min-height:34px;padding:5px 10px;font-size:14px}
+.btn.danger{color:var(--bad)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute);flex:1;min-width:130px}
+.field input,.field select,input.search{background:var(--ink);border:1px solid var(--line);border-radius:6px;padding:9px 10px;color:var(--text);min-height:40px;width:100%}
+.fields{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.stcard{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:10px;padding:12px}
+.stcard .hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.stcard .nm{font-family:var(--display);font-weight:800;font-size:22px;text-transform:uppercase;color:var(--c)}
+.stcard .meta{font-family:var(--mono);font-size:11px;color:var(--mute)}
+.nfc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;gap:12px;align-items:center}
+.nfc .chip{width:44px;height:58px;border-radius:6px;background:var(--c);flex:0 0 auto;display:grid;place-items:center;font-family:var(--mono);font-size:9px;color:var(--ink)}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#0b151a;border-top:1px solid var(--line);z-index:5}
+nav.tabs div{max-width:520px;margin:0 auto;display:flex}
+nav.tabs button{flex:1;background:none;border:0;padding:14px 2px 16px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);border-top:2px solid transparent}
+nav.tabs button.cur{color:var(--amber);border-top-color:var(--amber)}
+#sheet{position:fixed;inset:0;background:rgba(5,10,13,.7);z-index:10;display:flex;align-items:flex-end;justify-content:center}
+#sheet[hidden]{display:none}
+#sheet .card{background:var(--panel);border:1px solid var(--line);border-radius:14px 14px 0 0;padding:18px 16px 24px;width:100%;max-width:520px;max-height:85%;overflow:auto}
+#sheet h2{margin-top:0}
+.chk{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.chk input{width:20px;height:20px;accent-color:var(--amber)}
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--text);color:var(--ink);padding:9px 14px;border-radius:8px;font-size:14px;font-weight:500;z-index:20;max-width:90%;text-align:center}
+#toast[hidden]{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="mark">OPEN ROAD <span>RADIO</span></div>
+    <div class="pill" id="air"><i></i><span id="airtxt">STANDBY</span></div>
+  </header>
+
+  <section class="view show" id="v-radio">
+    <div class="tuner"><div class="band" id="band"></div></div>
+    <div class="readout">
+      <div class="freq" id="freq"></div>
+      <div class="stname" id="stname"></div>
+      <div class="tag" id="sttag"></div>
+    </div>
+    <div class="presets" id="presets"></div>
+    <div class="now" id="now"></div>
+    <div class="transport">
+      <button class="tb" data-act="stprev" aria-label="Previous station"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7z"/></svg>STN</button>
+      <button class="tb" data-act="prev" aria-label="Previous track"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+      <button class="tb big" data-act="toggle" id="playbtn" aria-label="Play or pause"></button>
+      <button class="tb" data-act="next" aria-label="Next track"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+      <button class="tb" data-act="stnext" aria-label="Next station"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7z"/></svg>STN</button>
+    </div>
+    <label class="vol" id="volrow" for="vol">VOL <input type="range" id="vol" min="0" max="1" step="0.02"></label>
+    <div id="radionote"></div>
+    <h3>Coming up</h3>
+    <div class="list" id="upnext"></div>
+  </section>
+
+  <section class="view" id="v-library"></section>
+  <section class="view" id="v-stations"></section>
+  <section class="view" id="v-cards"></section>
+  <section class="view" id="v-log"></section>
+</div>
+
+<nav class="tabs"><div>
+  <button data-tab="radio" class="cur">Radio</button>
+  <button data-tab="library">Music</button>
+  <button data-tab="stations">Stations</button>
+  <button data-tab="cards">Cards</button>
+  <button data-tab="log">Log</button>
+</div></nav>
+
+<div id="sheet" hidden><div class="card" id="sheetbody"></div></div>
+<div id="toast" hidden role="status"></div>
+<audio id="au" preload="auto" playsinline></audio>
+<input type="file" id="file" accept="audio/*,.mp3,.m4a,.aac,.flac,.wav,.ogg" multiple hidden>
+
+<script id="engine">
+/* ===== Open Road Radio engine: pure logic, no DOM. Tested in Node. ===== */
+(function(root){
+function rng(seed){let a=seed>>>0;return function(){a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
+const norm=s=>(s||'').trim().toLowerCase();
+function inStation(st,t){
+  if(st.all)return true;
+  if(t.stations&&t.stations.length)return t.stations.includes(st.id);
+  const g=norm(t.genre); if(!g)return true;            // unsorted tracks play everywhere
+  return (st.genres||[]).some(k=>g.includes(k));
+}
+function poolFor(st,tracks){return tracks.filter(t=>t.available!==false&&inStation(st,t))}
+
+/* Choose the next track. Tries strict repetition rules first, then relaxes step by step so playback never stops. */
+function pickTrack(st,pool,recent,now,rand){
+  if(!pool.length)return null;
+  const lastT=new Map(),lastA=new Map();
+  const sorted=recent.slice().sort((a,b)=>b.at-a.at);
+  for(const r of sorted){ if(!lastT.has(r.trackId))lastT.set(r.trackId,r.at); const a=norm(r.artist); if(a&&!lastA.has(a))lastA.set(a,r.at); }
+  const order=[...lastT.keys()];
+  const R=st.rules||{},M=60000,tw=(R.track_repeat_minutes||240)*M,aw=(R.artist_repeat_minutes||45)*M;
+  const ok=(t,tWin,aWin)=>{
+    const lt=lastT.get(t.id); if(lt!==undefined&&now-lt<tWin)return false;
+    const a=norm(t.artist),la=a?lastA.get(a):undefined; if(aWin&&la!==undefined&&now-la<aWin)return false;
+    return true};
+  const levels=[
+    t=>ok(t,tw,aw), t=>ok(t,tw/2,aw/2), t=>ok(t,tw/4,0),
+    t=>!order.slice(0,Math.max(1,Math.floor(pool.length/2))).includes(t.id),
+    t=>t.id!==order[0], ()=>true];
+  let elig=[],level=0;
+  for(;level<levels.length;level++){elig=pool.filter(levels[level]);if(elig.length)break}
+  const d=st.discovery||'balanced';
+  const w=elig.map(t=>{
+    const p=t.plays||0,lt=lastT.get(t.id);
+    const stale=lt===undefined?2:1+Math.min((now-lt)/3600000,24)/24;
+    let base=1;
+    if(d==='familiar')base=1+Math.min(p,8)*0.5+(t.fav?3:0);
+    else if(d==='explorer')base=3/(1+p);
+    else base=1+(t.fav?1:0);
+    return base*stale});
+  let x=rand()*w.reduce((a,b)=>a+b,0),i=0;
+  for(;i<w.length-1;i++){x-=w[i];if(x<=0)break}
+  return {track:elig[i],relaxed:level};
+}
+
+const DJ_PRESETS={off:null,rare:{id:[5,8],talk:[12,18]},normal:{id:[3,6],talk:[8,12]},chatty:{id:[2,3],talk:[4,6]}};
+const ri=(rand,[a,b])=>a+Math.floor(rand()*(b-a+1));
+function newProg(st,rand){const p=DJ_PRESETS[st.dj||'normal'];return p?{sinceId:0,sinceTalk:0,idAt:ri(rand,p.id),talkAt:ri(rand,p.talk)}:{off:true}}
+/* Call once per programmed song. Returns 'talk', 'ident' or null for what should follow that song. */
+function djDue(prog,st,rand){
+  const p=DJ_PRESETS[st.dj||'normal']; if(!p||prog.off)return null;
+  prog.sinceId++;prog.sinceTalk++;
+  if(prog.sinceTalk>=prog.talkAt){prog.sinceTalk=0;prog.sinceId=0;prog.talkAt=ri(rand,p.talk);prog.idAt=ri(rand,p.id);return 'talk'}
+  if(prog.sinceId>=prog.idAt){if(prog.talkAt-prog.sinceTalk<=1)return null; /* a longer break is close; let it carry the ID */ prog.sinceId=0;prog.idAt=ri(rand,p.id);return 'ident'}
+  return null}
+/* Pick a line index, avoiding the most recently used half of the pool. */
+function pickScript(n,recentIdx,rand){
+  if(n<=0)return -1;
+  const avoid=recentIdx.slice(-Math.floor(n/2));
+  const c=[];for(let i=0;i<n;i++)if(!avoid.includes(i))c.push(i);
+  return c[Math.floor(rand()*c.length)]}
+
+/* Built-in demo signal so the radio works before any music is added. Returns a WAV ArrayBuffer. */
+function synthDemo(seed,secs){
+  const r=rng(seed),sr=22050,bpm=80+Math.floor(r()*56),beat=60/bpm;
+  const bars=Math.max(4,Math.round((secs||20)/(beat*4))),n=Math.floor(bars*4*beat*sr),out=new Float32Array(n);
+  const root=98*Math.pow(2,Math.floor(r()*10)/12);
+  const prog=[[0,5,7,5],[0,-3,5,7],[0,7,-3,5]][Math.floor(r()*3)],arp=[0,4,7,12,16,12,7,4];
+  const off=Math.floor(r()*8),step=1+Math.floor(r()*3);
+  function note(f,start,len,amp,decay){const s0=Math.floor(start*sr),s1=Math.min(n,s0+Math.floor(len*sr));
+    for(let i=s0;i<s1;i++){const t=(i-s0)/sr,env=Math.exp(-decay*t)*Math.min(1,t*300);out[i]+=amp*env*(Math.sin(6.2832*f*t)+0.3*Math.sin(12.5664*f*t))}}
+  for(let b=0;b<bars;b++){const f=root*Math.pow(2,prog[b%4]/12),t0=b*4*beat;
+    note(f,t0,beat*2,0.32,1.5);note(f,t0+beat*2,beat*2,0.26,1.5);
+    for(let e=0;e<8;e++)note(f*2*Math.pow(2,arp[(off+e*step)%8]/12),t0+e*beat/2,beat*0.9,0.16,5)}
+  const fade=Math.floor(1.5*sr);
+  const buf=new ArrayBuffer(44+n*2),v=new DataView(buf);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  ws(0,'RIFF');v.setUint32(4,36+n*2,true);ws(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++){let s=out[i];if(i>n-fade)s*=(n-i)/fade;s=Math.max(-1,Math.min(1,s*0.9));v.setInt16(44+i*2,s*32767,true)}
+  return buf}
+
+/* Minimal ID3v2 reader: title, artist, genre. Returns {} when there is no tag. */
+function readId3(buf){
+  const b=new Uint8Array(buf),o={};
+  if(b.length<10||b[0]!==0x49||b[1]!==0x44||b[2]!==0x33)return o;
+  const ver=b[3],ss=(i)=>(b[i]&127)<<21|(b[i+1]&127)<<14|(b[i+2]&127)<<7|(b[i+3]&127);
+  const end=Math.min(b.length,10+ss(6));let p=10;
+  const dec=(bytes)=>{if(!bytes.length)return '';const e=bytes[0],d=bytes.subarray(1);
+    const enc=e===1?'utf-16':e===2?'utf-16be':e===3?'utf-8':'iso-8859-1';
+    try{return new TextDecoder(enc).decode(d).replace(/\0+$/,'').split('\0')[0].trim()}catch(x){return ''}};
+  const map=ver===2?{TT2:'title',TP1:'artist',TCO:'genre'}:{TIT2:'title',TPE1:'artist',TCON:'genre'};
+  while(p+(ver===2?6:10)<=end){
+    let id,size,hs;
+    if(ver===2){id=String.fromCharCode(b[p],b[p+1],b[p+2]);size=b[p+3]<<16|b[p+4]<<8|b[p+5];hs=6}
+    else{id=String.fromCharCode(b[p],b[p+1],b[p+2],b[p+3]);size=ver===4?ss(p+4):(b[p+4]<<24|b[p+5]<<16|b[p+6]<<8|b[p+7])>>>0;hs=10}
+    if(!/^[A-Z0-9]+$/.test(id)||size<=0)break;
+    if(map[id]&&p+hs+size<=b.length)o[map[id]]=dec(b.subarray(p+hs,p+hs+size));
+    p+=hs+size}
+  if(o.genre&&/^\(?\d+\)?$/.test(o.genre))o.genre='';
+  return o}
+
+const api={rng,inStation,poolFor,pickTrack,newProg,djDue,pickScript,synthDemo,readId3,DJ_PRESETS};
+if(typeof module!=='undefined'&&module.exports)module.exports=api; else root.ORR=api;
+})(typeof window!=='undefined'?window:globalThis);
+</script>
+
+<script id="data">
+/* ===== Station and DJ definitions. Everything here is data; the app has no station-specific code. ===== */
+const PERSONAS={
+ wave:{label:'Easygoing',name:'Marlo',rate:0.92,pitch:0.95,voice:0,lines:{
+  intro:["This is {st}. Windows down, no rush. Let's ease into it.","{st}, coming in soft. Stay as long as you like.","You found {st}. Good timing, we were just getting comfortable."],
+  ident:["{st}.","You're on {st}, where nobody's in a hurry.","{st}. Still here, still easy.","This is {st}. Breathe out.","{st}, the slow lane of the dial."],
+  talk:["I'm {dj}, this is {st}. I had a whole thing planned to say here, and then the last song talked me out of it. More music.","Somebody once told me the scenic route is just the long way with better publicity. I'll take it. {st}.","If you're driving, hi. If you're not driving, also hi, but keep your eyes open anyway. This is {st}.","No traffic report here. I don't know where you are, and that's the nice part. More music on {st}.","{dj} here. That one's been stuck in my head all week, and I'm fine with it."],
+  song:["Coming up on {st}, {title}, from {artist}. Settle in.","Next, {artist} with {title}. I think you'll like where it goes.","Here's {title} by {artist}. Turn it up a little. Just a little."],
+  tod:{morning:"Morning from {st}. Coffee first, opinions later.",afternoon:"Afternoon on {st}. The day's half done and so are we.",evening:"Evening on {st}. The songs get longer from here.",night:"It's late on {st}. Just you, me, and the road hum."}}},
+ pulse:{label:'High energy',name:'Jet',rate:1.12,pitch:1.15,voice:1,lines:{
+  intro:["{st}. You're in. Let's move.","This is {st}, and we are already going.","{st}, locked. Keep up."],
+  ident:["{st}.","{st}. No brakes.","You're on {st}. Stay loud.","{st}, back to back to back.","This is {st}. Next one's ready."],
+  talk:["{dj} here on {st}. I'd talk longer but the next track is tapping its foot at me.","Quick check. Shoulders loose? Volume up? Good. {st}.","{st}, where the skip button gets lonely. {dj} with you, here's more.","If that last one didn't move you, I've got nothing. Kidding. I've got plenty.","{dj} on {st}. Short break, long run. Go."],
+  song:["Up next on {st}, {artist}, {title}. Go.","Here it comes. {title}, from {artist}.","{artist} is next with {title}. Turn it up."],
+  tod:{morning:"Morning! {st}. We're skipping the snooze button.",afternoon:"Afternoon on {st}. The slump stops here.",evening:"Evening on {st}. The day's done, the night isn't.",night:"Late night on {st}. Nobody's sleeping on this station."}}},
+ xs:{label:'Dry and opinionated',name:'Dez',rate:0.98,pitch:0.8,voice:2,lines:{
+  intro:["{st}. You probably took a wrong turn. Stay anyway.","This is {st}. We don't take requests. We barely take suggestions.","{st}. Lower your expectations and raise the volume."],
+  ident:["{st}.","{st}. Still unlicensed in spirit.","You're on {st}. Nobody asked for this, and yet.","{st}. The part of the dial your parents skipped.","This is {st}. Carry on."],
+  talk:["{dj}, {st}. I was told to sound more enthusiastic. This is it. This is the enthusiasm.","That was a song. I liked it. That's the whole review. {st}.","{st}, proudly ignoring the charts since whenever this started. {dj} here. More noise.","If you've heard the next one before, good for you. If you haven't, you're welcome.","{dj} on {st}. No giveaways, no contests, no caller number nine. Just this."],
+  song:["Next up, {artist}. The song is {title}. Pay attention.","Here's {title} by {artist}. I have opinions about this one. I'll keep them.","{artist}, {title}. You can thank me later."],
+  tod:{morning:"It's morning. {st} does not approve, but here we are.",afternoon:"Afternoon on {st}. Peak hours for doing something else.",evening:"Evening on {st}. Finally, a reasonable hour.",night:"It's late. This is when {st} makes the most sense."}}},
+ block:{label:'Charismatic host',name:'Coco',rate:1.05,pitch:1.1,voice:3,lines:{
+  intro:["{st} is open! Come on in, bring somebody.","This is {st}. Street's closed, speakers are out.","You made it to {st}. Grab a plate, find a spot."],
+  ident:["{st}!","{st}. Everybody's invited.","You're at {st}. Don't just stand there.","{st}. The whole street can hear us.","This is {st}, and the grill's still going."],
+  talk:["It's {dj} at {st}. I see you in the back pretending you don't dance. I see you.","{dj} here. Somebody's uncle just took over the grill, so we're gonna be here a while. More music.","House rules. One, be nice. Two, turn it up. That's it, that's the rules.","If you know the words to the next one, sing. If you don't, sing louder. {st}.","{dj} on {st}. Shout out to everybody holding down a folding chair right now."],
+  song:["Next on {st}, {artist} with {title}. Let's go.","This one's {title}, by {artist}. Make some room.","{artist}! {title}! Hands up."],
+  tod:{morning:"Good morning from {st}. Yes, we start early.",afternoon:"Afternoon at {st}. Best time of day to stand near a speaker.",evening:"Evening at {st}. Lights are on, nobody's leaving.",night:"Late night at {st}. The neighbors gave up and joined in."}}},
+ classic:{label:'Highway veteran',name:'Hank',rate:0.9,pitch:0.75,voice:4,lines:{
+  intro:["{st}. Buckle up, I've got the map.","This is {st}. Long road, good songs.","Welcome to {st}. Tank's full, let's roll."],
+  ident:["{st}.","{st}. Mile after mile.","You're riding with {st}.","{st}, the station that knows every exit.","This is {st}. Keep it between the lines."],
+  talk:["{dj} here on {st}. I once drove four hours for a slice of pie. Would do it again. Here's more music.","Rule of the road. Driver picks the music, passenger keeps quiet about it. Lucky for you, I'm doing both jobs.","{dj} on {st}. They say it's about the journey, not the destination. They've never been late for dinner.","If there's a rest stop coming up, take it. Stretch your legs. I'll hold your place. {st}.","Some songs just sound better at highway speed. I can't prove it, but I'm right."],
+  song:["Up next on {st}, {artist}, with {title}.","Here's one for the open road. {title}, by {artist}.","{artist} coming up. This is {title}. Roll the window down for it."],
+  tod:{morning:"Morning from {st}. Best time to put some miles behind you.",afternoon:"Afternoon on {st}. Plenty of road left.",evening:"Evening on {st}. Headlights on, folks.",night:"Late night on {st}. Just us and the white lines."}}},
+ gacha:{label:'Quirky and curious',name:'Pip',rate:1.06,pitch:1.3,voice:5,lines:{
+  intro:["{st}! Turn the crank, see what drops.","This is {st}. I don't know what's next either.","Welcome to {st}, where the playlist is a rumor."],
+  ident:["{st}.","{st}. Anything can happen, and usually does.","You're in {st}. Hold on to something.","{st}. Shake the capsule.","This is {st}, population: whatever's next."],
+  talk:["{dj} here in {st}. I reached into the machine and that's what came out. Let's reach in again.","Fun fact about the next song. I haven't looked yet. That's the fun fact.","{st}, where two matching songs in a row is considered a malfunction.","{dj} on {st}. Somebody asked what genre this station is. I said yes.","No two pulls the same. Well. Sometimes two. {st}."],
+  song:["The capsule says {title}, by {artist}. Ooh.","Next pull, {artist}, {title}. Didn't see that coming.","Up next in {st}, {title} from {artist}. Sure, why not."],
+  tod:{morning:"Good morning, {st}. First pull of the day.",afternoon:"Afternoon in {st}. The machine is warmed up.",evening:"Evening in {st}. Odds are getting weirder.",night:"Late night in {st}. The rare ones come out now."}}}
+};
+const DEFAULT_STATIONS=[
+ {id:'wave-fm',name:'Wave FM',freq:88.3,tagline:'Relaxed, melodic, windows down.',color:'#5fd0c5',persona:'wave',genres:['indie','alternative','chill','ambient','dream','lo-fi','lofi','folk','soft','acoustic'],discovery:'balanced',dj:'normal',motif:[392,494,587],rules:{artist_repeat_minutes:45,track_repeat_minutes:240}},
+ {id:'pulse-radio',name:'Pulse Radio',freq:94.7,tagline:'Upbeat, fast, always moving.',color:'#ff5d8f',persona:'pulse',genres:['pop','electro','dance','edm','house','techno','synth'],discovery:'balanced',dj:'normal',motif:[523,659,784,1047],rules:{artist_repeat_minutes:45,track_repeat_minutes:180}},
+ {id:'xs-radio',name:'XS Radio',freq:99.1,tagline:'Alternative, edgy, deeper cuts.',color:'#d8e04a',persona:'xs',genres:['punk','alternative','grunge','metal','emo','garage','experimental','hardcore','noise','indie rock'],discovery:'explorer',dj:'normal',motif:[330,311,247],rules:{artist_repeat_minutes:60,track_repeat_minutes:300}},
+ {id:'block-party',name:'Block Party',freq:102.5,tagline:'Rhythm, throwbacks, good company.',color:'#ff8a3d',persona:'block',genres:['hip','rap','funk','r&b','rnb','soul','disco','reggaeton','motown'],discovery:'familiar',dj:'normal',motif:[294,370,440,370],rules:{artist_repeat_minutes:30,track_repeat_minutes:180}},
+ {id:'classic-road-trip',name:'Classic Road Trip',freq:105.9,tagline:'Familiar songs for open highways.',color:'#c98b5a',persona:'classic',genres:['classic','country','americana','blues','southern','oldies','rock'],discovery:'familiar',dj:'normal',motif:[196,247,294],rules:{artist_repeat_minutes:45,track_repeat_minutes:240}},
+ {id:'gacha-city',name:'Gacha City',freq:107.7,tagline:'Every genre, every era, no warning.',color:'#b48cff',persona:'gacha',all:true,genres:[],discovery:'explorer',dj:'normal',motif:[659,494,740,587],rules:{artist_repeat_minutes:60,track_repeat_minutes:360}}
+];
+const DEMO_TRACKS=[
+ ['Test Tone No. 1','The Signal Checks'],['Carrier Wave','The Signal Checks'],['Dial Light','House Band on Standby'],
+ ['Static in C','House Band on Standby'],['Mile Marker','The Placeholders'],['Warm-Up Lap','The Placeholders'],
+ ['Antenna Song','Open Road Test Unit'],['Frequency Sweep','Open Road Test Unit']
+].map((d,i)=>({id:'demo-'+i,title:d[0],artist:d[1],genre:'',demo:true,seed:1000+i*77,plays:0,stations:[]}));
+const FREE_FREQS=[90.5,92.1,96.9,100.3,103.7,91.3,97.7,89.5,101.1,104.3];
+const DEFAULT_CARDS=DEFAULT_STATIONS.map((s,i)=>({uid:'04'+(0xA1B2C3+i*0x111111).toString(16).toUpperCase().padStart(8,'0'),label:s.name+' card',action:'play_station',target:s.id}));
+</script>
+
+<script id="app">
+/* ===== App: state, storage, playback, DJ, cards, UI ===== */
+const $=id=>document.getElementById(id), au=$('au');
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const KEY='orr.v1';
+let S={tracks:[],edits:{},custom:[],cards:DEFAULT_CARDS.slice(),log:[],recent:[],scripts:{},settings:{last:'wave-fm',volume:0.9,voice:true,source:'local'},sp:{clientId:'',token:'',refresh:'',exp:0,playlists:[],sources:{},loaded:{},inpage:true}};
+try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);S=Object.assign(S,o);S.settings=Object.assign({last:'wave-fm',volume:0.9,voice:true,source:'local'},o.settings||{});S.sp=Object.assign({clientId:'',token:'',refresh:'',exp:0,playlists:[],sources:{},loaded:{},inpage:true},o.sp||{})}}catch(e){}
+let saveT=0;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}},300)}
+
+const rand=ORR.rng((Date.now()^(Math.random()*1e9))>>>0);
+const blobs=new Map();          // track id -> Blob (this session)
+let curId=S.settings.last, queue=[], prog=null, nowItem=null, on=false, token=0, fails=0, prevStack=[], lastDjAt=0, djText='', errMsg='', curUrl=null, cancelSpeech=()=>{}, unlocked=false, actx=null, silentUrl=null, volOk=true;
+
+/* ---------- stations ---------- */
+function stations(){return DEFAULT_STATIONS.concat(S.custom).map(s=>{const e=S.edits[s.id]||{};return Object.assign({},s,e,{rules:Object.assign({},s.rules,e.rules||{}),enabled:e.enabled!==false})})}
+function live(){return stations().filter(s=>s.enabled).sort((a,b)=>a.freq-b.freq)}
+function station(id){return stations().find(s=>s.id===id)}
+function cur(){return station(curId)||live()[0]||stations()[0]}
+function edit(id,patch){S.edits[id]=Object.assign({},S.edits[id]||{},patch);save()}
+function library(){if(spMode())return SPT;const real=S.tracks.filter(t=>t.available!==false);return real.length?S.tracks:DEMO_TRACKS}
+function demoMode(){return !spMode()&&!S.tracks.some(t=>t.available!==false)}
+function trackById(id){return S.tracks.find(t=>t.id===id)||SPT.find(t=>t.id===id)||DEMO_TRACKS.find(t=>t.id===id)}
+
+/* ---------- audio file storage (IndexedDB, best effort) ---------- */
+function idb(){return new Promise((res)=>{try{const r=indexedDB.open('orr-audio',1);r.onupgradeneeded=()=>r.result.createObjectStore('a');r.onsuccess=()=>res(r.result);r.onerror=()=>res(null)}catch(e){res(null)}})}
+async function idbDo(mode,fn){const db=await idb();if(!db)return null;return new Promise(res=>{try{const tx=db.transaction('a',mode),rq=fn(tx.objectStore('a'));rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(null)}catch(e){res(null)}})}
+const idbPut=(k,v)=>idbDo('readwrite',s=>s.put(v,k)), idbGet=k=>idbDo('readonly',s=>s.get(k)), idbDel=k=>idbDo('readwrite',s=>s.delete(k)), idbKeys=()=>idbDo('readonly',s=>s.getAllKeys());
+
+async function urlFor(t){
+  let blob=blobs.get(t.id);
+  if(!blob&&t.demo){blob=new Blob([ORR.synthDemo(t.seed,20)],{type:'audio/wav'});blobs.set(t.id,blob)}
+  if(!blob){blob=await idbGet(t.id);if(blob)blobs.set(t.id,blob)}
+  if(!blob)throw new Error('missing');
+  if(curUrl)try{URL.revokeObjectURL(curUrl)}catch(e){}
+  return curUrl=URL.createObjectURL(blob)}
+
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
+async function importFiles(files){
+  let added=0,relinked=0,bad=0;
+  for(const f of files){
+    if(!(f.type.startsWith('audio/')||/\.(mp3|m4a|aac|flac|wav|ogg|opus)$/i.test(f.name))){bad++;continue}
+    const id='f'+hash(f.name+'|'+f.size);
+    let t=S.tracks.find(x=>x.id===id);
+    blobs.set(id,f);idbPut(id,f);
+    if(t){t.available=true;relinked++;continue}
+    let tag={};try{tag=ORR.readId3(await f.slice(0,262144).arrayBuffer())}catch(e){}
+    const base=f.name.replace(/\.[^.]+$/,'').replace(/_/g,' ').replace(/^\d+[\s.\-]+/,'');
+    const m=base.match(/^(.+?)\s+-\s+(.+)$/);
+    S.tracks.push({id,title:tag.title||(m?m[2]:base),artist:tag.artist||(m?m[1]:''),genre:tag.genre||'',file:f.name,stations:[],plays:0,fav:false,available:true});
+    added++}
+  save();render();
+  toast(`${added} added`+(relinked?`, ${relinked} relinked`:'')+(bad?`, ${bad} skipped (not audio)`:''));
+  if(added&&on)refill(true)}
+
+/* ---------- log ---------- */
+function log(kind,text,st){S.log.push({at:Date.now(),kind,text,st:st||curId});if(S.log.length>300)S.log.splice(0,S.log.length-300);save();if($('v-log').classList.contains('show'))renderLog()}
+
+/* ---------- queue ---------- */
+function refill(reset){
+  const st=cur(),pool=ORR.poolFor(st,library());
+  if(reset)queue=queue.filter(q=>q.type!=='music'&&q.kind==='intro');
+  let guard=0;
+  while(queue.filter(q=>q.type==='music').length<3&&guard++<6){
+    const pend=queue.filter(q=>q.type==='music').map(q=>({trackId:q.trackId,artist:(trackById(q.trackId)||{}).artist,at:Date.now()}));
+    const pick=ORR.pickTrack(st,pool,S.recent.concat(pend),Date.now(),rand);
+    if(!pick)break;
+    queue.push({type:'music',trackId:pick.track.id,relaxed:pick.relaxed});
+    const due=ORR.djDue(prog,st,rand);
+    if(due)queue.push({type:'dj',kind:due})}
+}
+
+/* ---------- DJ ---------- */
+function partOfDay(){const h=new Date().getHours();return h<5?'night':h<12?'morning':h<17?'afternoon':h<21?'evening':'night'}
+function nextUp(){if(djNext)return djNext;if(spMode()){const b=spBatch[spIdx+1];return b&&trackById(b.trackId)}const q=queue.find(q=>q.type==='music');return q&&trackById(q.trackId)}
+function buildScript(kind){
+  const st=cur(),p=PERSONAS[st.persona]||PERSONAS.wave,L=p.lines;
+  const nt=nextUp();
+  let pool=kind,text;
+  if(kind==='talk'){const r=rand();
+    if(r<0.22)text=L.tod[partOfDay()];
+    else if(r<0.6&&nt&&!nt.demo&&nt.artist&&nt.title)pool='song'}
+  if(!text){const key=st.id+':'+pool,rec=S.scripts[key]||(S.scripts[key]=[]);
+    const i=ORR.pickScript(L[pool].length,rec,rand);rec.push(i);if(rec.length>8)rec.shift();text=L[pool][i]}
+  return {text:text.replace(/\{st\}/g,st.name).replace(/\{dj\}/g,p.name).replace(/\{title\}/g,nt?nt.title:'').replace(/\{artist\}/g,nt?nt.artist:''),p}}
+function sting(st){return new Promise(res0=>{
+  if(!actx||document.hidden)return res0();
+  const sm=spMode(),res=()=>{if(sm)try{actx.suspend()}catch(e){}res0()};
+  if(sm)try{actx.resume()}catch(e){}
+  try{const t0=actx.currentTime+0.02,g=actx.createGain();g.gain.value=0.12*S.settings.volume;g.connect(actx.destination);
+    (st.motif||[440,554,659]).forEach((f,i)=>{const o=actx.createOscillator(),e=actx.createGain();o.type='triangle';o.frequency.value=f;
+      e.gain.setValueAtTime(0,t0+i*0.13);e.gain.linearRampToValueAtTime(1,t0+i*0.13+0.02);e.gain.exponentialRampToValueAtTime(0.001,t0+i*0.13+0.5);
+      o.connect(e);e.connect(g);o.start(t0+i*0.13);o.stop(t0+i*0.13+0.55)});
+    setTimeout(res,(st.motif||[1,1,1]).length*130+350)}catch(e){res()}})}
+function speak(text,p){return new Promise(res=>{
+  const ss=window.speechSynthesis,readMs=Math.min(6000,1400+text.length*45);
+  let done=false,t1,t2;const fin=()=>{if(done)return;done=true;clearTimeout(t1);clearTimeout(t2);res()};
+  cancelSpeech=()=>{try{ss&&ss.cancel()}catch(e){}fin()};
+  if(!S.settings.voice||!ss||typeof SpeechSynthesisUtterance==='undefined'){t2=setTimeout(fin,readMs);return}
+  try{const u=new SpeechSynthesisUtterance(text);u.rate=p.rate;u.pitch=p.pitch;u.volume=S.settings.volume;
+    const vs=ss.getVoices().filter(v=>/^en/i.test(v.lang));if(vs.length)u.voice=vs[p.voice%vs.length];
+    let started=false;u.onstart=()=>{started=true};u.onend=fin;u.onerror=fin;
+    t1=setTimeout(()=>{if(!started){clearTimeout(t2);t2=setTimeout(fin,readMs)}},2500);
+    t2=setTimeout(fin,5000+text.length*120);
+    ss.cancel();ss.speak(u)}catch(e){t2=setTimeout(fin,readMs)}})}
+async function playDj(item,my){
+  const st=cur();
+  if(item.kind!=='intro'&&(document.hidden||Date.now()-lastDjAt<60000))return;   // never stall a locked phone; keep breaks spaced out
+  const {text,p}=buildScript(item.kind);
+  djText=text;render();
+  log('dj',`${p.name}: ${text}`);lastDjAt=Date.now();
+  await sting(st); if(my!==token)return;
+  await speak(text,p)}
+
+/* ---------- playback ---------- */
+function unlock(){
+  if(unlocked)return;unlocked=true;
+  try{const A=window.AudioContext||window.webkitAudioContext;if(A){actx=new A();actx.resume&&actx.resume()}}catch(e){}
+  try{if(window.speechSynthesis&&S.settings.voice){const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u)}}catch(e){}
+  if(spMode()){try{actx&&actx.suspend()}catch(e){}return}
+  try{silentUrl=URL.createObjectURL(new Blob([ORR.synthDemo(1,0.1).slice(0,44+2200)],{type:'audio/wav'}));au.dataset.tid='';au.src=silentUrl;const pr=au.play();pr&&pr.catch(()=>{})}catch(e){}
+}
+function fade(){return new Promise(r=>{if(au.paused)return r();const v0=au.volume;let i=0;const h=setInterval(()=>{i++;try{au.volume=v0*(1-i/6)}catch(e){}if(i>=6){clearInterval(h);au.pause();try{au.volume=v0}catch(e){}r()}},30)})}
+function settle(){ // book-keeping for the track that is ending or being skipped
+  if(spMode())return;
+  if(!nowItem||nowItem.type!=='music')return;
+  const t=trackById(nowItem.trackId);if(!t)return;
+  const heard=au.currentTime||0,dur=au.duration||0;
+  if(au.ended||heard>=30||(dur&&heard>=dur*0.8)){t.plays=(t.plays||0)+1}else log('skip',`Skipped ${t.title}`);
+  save()}
+async function advance(){
+  const my=++token;errMsg='';djText='';
+  refill();
+  const item=queue.shift();
+  if(!item){stopWith(demoMode()?'Nothing to play.':`${cur().name} has no playable tracks. Add music or assign tracks to it in Music.`);return}
+  refill();nowItem=item;render();
+  if(item.type==='dj'){await playDj(item,my);if(my!==token)return;djText='';return advance()}
+  const t=trackById(item.trackId);let url=null;
+  try{url=t&&await urlFor(t)}catch(e){}
+  if(my!==token)return;
+  if(!url){trackFailed(t,'file is not on this device');return}
+  au.dataset.tid=t.id;au.src=url;try{au.volume=S.settings.volume}catch(e){}
+  S.recent.push({trackId:t.id,artist:t.artist,at:Date.now()});if(S.recent.length>300)S.recent.splice(0,S.recent.length-300);
+  t.lastPlayed=Date.now();
+  log('music',`${t.title}${t.artist?' · '+t.artist:''}`+(item.relaxed>1?' (repeat rules relaxed)':''));
+  mediaMeta(t);render();
+  const pr=au.play();pr&&pr.catch(e=>{if(e&&e.name==='AbortError')return;if(my===token){on=false;errMsg='Your browser paused playback. Tap play to continue.';render()}})
+}
+function trackFailed(t,why){
+  if(t){if(!t.demo)t.available=false;log('error',`Could not play ${t.title}: ${why}`)}
+  fails++;queue=queue.filter(q=>!(q.type==='music'&&t&&q.trackId===t.id));
+  if(fails>=5||!ORR.poolFor(cur(),library()).length){stopWith(`${cur().name} has no playable tracks right now. Re-add the files in Music.`);return}
+  advance()}
+function stopWith(msg){on=false;nowItem=null;errMsg=msg;token++;au.pause();log('error',msg);render()}
+function toggle(){
+  unlock();
+  if(spMode())return spToggle();
+  if(!on){on=true;errMsg='';
+    if(nowItem&&nowItem.type==='music'&&au.dataset.tid===nowItem.trackId&&!au.ended){const pr=au.play();pr&&pr.catch(()=>{});render()}
+    else{if(!prog)startStation(true);advance()}}
+  else{on=false;if(nowItem&&nowItem.type==='music')au.pause();else{token++;cancelSpeech();nowItem=null;djText=''}render()}}
+function startStation(withIntro){const st=cur();prog=ORR.newProg(st,rand);queue=withIntro?[{type:'dj',kind:'intro'}]:[]}
+async function tune(id,why){
+  unlock();
+  const st=station(id);if(!st||!st.enabled){toast('That station is not available.');return}
+  if(id===curId&&on){toast(`Already on ${st.name}`);return}
+  settle();token++;cancelSpeech();
+  curId=id;S.settings.last=id;save();
+  if(why)log('card',why,id);
+  if(spMode()){render();return spStart(true)}
+  if(!ORR.poolFor(st,library()).length){await fade();nowItem=null;render();stopWith(`${st.name} has no tracks yet. Open Music and assign some to it.`);return}
+  startStation(true);on=true;nowItem=null;render();
+  await fade();advance()}
+async function next(){unlock();if(spMode())return spNext();if(!prog)startStation(false);settle();if(nowItem&&nowItem.type==='music')prevStack.push(nowItem.trackId);token++;cancelSpeech();on=true;await fade();advance()}
+async function prev(){unlock();if(spMode())return spPrev();
+  if(nowItem&&nowItem.type==='music'&&au.currentTime>4){au.currentTime=0;return}
+  const id=prevStack.pop();if(!id){if(nowItem&&nowItem.type==='music')au.currentTime=0;return}
+  if(!prog)startStation(false);
+  settle();token++;cancelSpeech();if(nowItem&&nowItem.type==='music')queue.unshift(nowItem);queue.unshift({type:'music',trackId:id});on=true;await fade();advance()}
+function stepStation(d){const l=live();if(!l.length)return;const i=l.findIndex(s=>s.id===curId);tune(l[(i+d+l.length)%l.length].id)}
+
+au.addEventListener('ended',()=>{if(nowItem&&nowItem.type==='music'&&au.dataset.tid===nowItem.trackId){settle();prevStack.push(nowItem.trackId);if(prevStack.length>50)prevStack.shift();advance()}});
+au.addEventListener('error',()=>{if(nowItem&&nowItem.type==='music'&&au.dataset.tid===nowItem.trackId&&on)trackFailed(trackById(nowItem.trackId),'the file would not decode')});
+au.addEventListener('playing',()=>{if(au.dataset.tid)fails=0});
+au.addEventListener('timeupdate',renderProgress);
+au.addEventListener('pause',()=>{ // paused from the lock screen or headphones
+  if(on&&nowItem&&nowItem.type==='music'&&au.dataset.tid===nowItem.trackId&&!au.ended&&document.visibilityState!=='hidden'){/* handled by our own controls */}});
+function mediaMeta(t){try{if(!('mediaSession' in navigator))return;const st=cur();
+  navigator.mediaSession.metadata=new MediaMetadata({title:t.title,artist:t.artist||st.name,album:st.name+' · Open Road Radio'});
+  navigator.mediaSession.setActionHandler('play',()=>{if(!on)toggle()});
+  navigator.mediaSession.setActionHandler('pause',()=>{if(on)toggle()});
+  navigator.mediaSession.setActionHandler('nexttrack',next);
+  navigator.mediaSession.setActionHandler('previoustrack',prev)}catch(e){}}
+
+
+/* ---------- Spotify: the radio picks the songs, the Spotify app plays them ---------- */
+const SP_SCOPES='streaming user-read-email user-read-private playlist-read-private playlist-read-collaborative user-library-read user-read-playback-state user-modify-playback-state user-read-currently-playing';
+const SP_ASLEEP='Spotify is asleep. Open the Spotify app, play any song for a moment, then come back here and press play.';
+const spRedirect=()=>location.origin+location.pathname;
+const spCanRun=()=>{try{return location.protocol==='https:'&&window.self===window.top}catch(e){return false}};
+const spMode=()=>S.settings.source==='spotify'&&!!S.sp.refresh;
+let SPT=[];try{SPT=JSON.parse(localStorage.getItem(KEY+'.sp')||'[]')}catch(e){}
+function saveSp(){try{localStorage.setItem(KEY+'.sp',JSON.stringify(SPT))}catch(e){}}
+let spBatch=[],spIdx=-1,spPollT=0,spEdgeT=0,spEdgeFor='',spState={prog:0,dur:0,at:0,playing:false},spBusy=false,spExt=null,spStale=false,spCmdAt=0,djNext=null;
+const spNow=()=>Math.min(spState.dur||1e12,spState.prog+(spState.playing?Date.now()-spState.at:0));
+function spRand(n){const c='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';return Array.from(crypto.getRandomValues(new Uint8Array(n)),x=>c[x%c.length]).join('')}
+async function spLogin(){
+  try{const v=spRand(64),state=spRand(16),dig=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v));
+    const ch=btoa(String.fromCharCode(...new Uint8Array(dig))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+    localStorage.setItem('orr.pkce',JSON.stringify({v,state}));
+    location.href='https://accounts.spotify.com/authorize?'+new URLSearchParams({response_type:'code',client_id:S.sp.clientId,scope:SP_SCOPES,redirect_uri:spRedirect(),state,code_challenge_method:'S256',code_challenge:ch})}
+  catch(e){toast('This browser could not start Spotify sign-in.')}}
+async function spToken(params){
+  const r=await fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(params)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const e=new Error(j.error_description||j.error||('Spotify sign-in failed ('+r.status+')'));e.auth=true;throw e}
+  S.sp.token=j.access_token;if(j.refresh_token)S.sp.refresh=j.refresh_token;S.sp.exp=Date.now()+(j.expires_in||3600)*1000;save()}
+async function spCallback(){
+  const q=new URLSearchParams(location.search);if(!q.get('code')&&!q.get('error'))return;
+  let pk={};try{pk=JSON.parse(localStorage.getItem('orr.pkce')||'{}')}catch(e){}
+  try{history.replaceState(null,'',spRedirect())}catch(e){}
+  if(q.get('error')||q.get('state')!==pk.state){toast('Spotify sign-in was cancelled.');return}
+  try{await spToken({grant_type:'authorization_code',code:q.get('code'),redirect_uri:spRedirect(),client_id:S.sp.clientId,code_verifier:pk.v});
+    S.settings.source='spotify';save();showTab('library');toast('Spotify connected');spLoadPlaylists()}
+  catch(e){showTab('library');toast(e.message)}}
+async function sp(method,path,body,retry){
+  if(Date.now()>S.sp.exp-60000)await spToken({grant_type:'refresh_token',refresh_token:S.sp.refresh,client_id:S.sp.clientId});
+  const r=await fetch('https://api.spotify.com/v1'+path,{method,headers:Object.assign({Authorization:'Bearer '+S.sp.token},body?{'Content-Type':'application/json'}:{}),body:body?JSON.stringify(body):undefined});
+  if(r.status===401&&!retry){S.sp.exp=0;return sp(method,path,body,true)}
+  if(r.status===429&&!retry){await new Promise(z=>setTimeout(z,Math.min(5,+(r.headers.get('Retry-After')||1))*1000));return sp(method,path,body,true)}
+  const txt=await r.text();let j=null;try{j=txt?JSON.parse(txt):null}catch(e){}
+  if(!r.ok){const e=new Error((j&&j.error&&j.error.message)||('Spotify error '+r.status));e.status=r.status;e.reason=j&&j.error&&j.error.reason;throw e}
+  return j}
+function spMsg(e){
+  if(e.sdk)return e.message;
+  if(e.auth)return 'Spotify signed you out. Open Music and connect again.';
+  if(e.status===404||e.reason==='NO_ACTIVE_DEVICE'){if(S.sp.inpage){spDevId=null;return 'The in-page Spotify player lost its connection. Press play to reconnect.'}return SP_ASLEEP}
+  if(e.status===403)return 'Spotify refused that command ('+e.message+'). Playback control needs Spotify Premium on the signed-in account.';
+  if(e.status===429)return 'Spotify asked the radio to slow down. Wait a minute and press play.';
+  return 'Spotify: '+e.message}
+function spFail(msg){on=false;errMsg=msg;log('error',msg);render()}
+const spPath=u=>u?u.replace('https://api.spotify.com/v1',''):null;
+
+
+/* in-page playback: Spotify's Web Playback SDK turns this page into the Spotify device */
+let spPlayer=null,spDevId=null,spSdkErr='',spSdkLoading=null,spReadyWait=[];
+function spGesture(){try{if(S.sp.inpage&&spPlayer&&spPlayer.activateElement){const p=spPlayer.activateElement();p&&p.catch&&p.catch(()=>{})}}catch(e){}}
+function spLoadSdk(){
+  if(window.Spotify&&window.Spotify.Player)return Promise.resolve();
+  if(spSdkLoading)return spSdkLoading;
+  return spSdkLoading=new Promise((res,rej)=>{
+    window.onSpotifyWebPlaybackSDKReady=()=>res();
+    const sc=document.createElement('script');sc.src='https://sdk.scdn.co/spotify-player.js';sc.async=true;
+    sc.onerror=()=>{spSdkLoading=null;rej(new Error('load'))};document.head.appendChild(sc);
+    setTimeout(()=>{if(!(window.Spotify&&window.Spotify.Player)){spSdkLoading=null;rej(new Error('timeout'))}},15000)})}
+async function spInitPlayer(){
+  if(spPlayer||!spCanRun())return;
+  spSdkErr='';
+  try{await spLoadSdk()}catch(e){spSdkErr='Spotify\'s in-page player could not load. Check your connection or any content blocker, or switch to The Spotify app.';render();return}
+  if(spPlayer)return;
+  const P=new window.Spotify.Player({name:'Open Road Radio',volume:S.settings.volume,enableMediaSession:true,
+    getOAuthToken:cb=>{(Date.now()>S.sp.exp-60000?spToken({grant_type:'refresh_token',refresh_token:S.sp.refresh,client_id:S.sp.clientId}):Promise.resolve()).then(()=>cb(S.sp.token),()=>cb(S.sp.token))}});
+  spPlayer=P;
+  const bad=(m)=>{spSdkErr=m;spReadyWait.splice(0).forEach(w=>w(null));if(on&&spMode()&&S.sp.inpage)spFail(m);else render()};
+  P.addListener('ready',({device_id})=>{spDevId=device_id;spSdkErr='';spReadyWait.splice(0).forEach(w=>w(device_id));render()});
+  P.addListener('not_ready',()=>{spDevId=null;render()});
+  P.addListener('initialization_error',()=>bad('This browser cannot play Spotify inside a page. In Music, switch to The Spotify app.'));
+  P.addListener('authentication_error',()=>bad('Spotify would not sign the in-page player in. In Music, disconnect and connect again so it can grant playback.'));
+  P.addListener('account_error',()=>bad('In-page playback needs a full Spotify Premium plan on the signed-in account.'));
+  P.addListener('playback_error',({message})=>{log('error','Spotify playback: '+message)});
+  P.addListener('autoplay_failed',()=>{if(on&&spMode())spFail('Safari blocked the song from starting by itself. Press play.')});
+  try{const ok=await P.connect();if(!ok)bad('The in-page Spotify player could not connect. Press play to try again.')}catch(e){bad('The in-page Spotify player could not connect.')}}
+function spKillPlayer(){try{spPlayer&&spPlayer.disconnect()}catch(e){}spPlayer=null;spDevId=null;spSdkErr=''}
+async function spPlayerId(){
+  if(spDevId)return spDevId;
+  if(spSdkErr&&spPlayer){spKillPlayer()}
+  spInitPlayer();
+  const id=await new Promise(res=>{spReadyWait.push(res);setTimeout(()=>res(null),15000)});
+  if(!id){const e=new Error(spSdkErr||'The in-page Spotify player did not come online. Check your connection and press play, or switch to The Spotify app in Music.');e.sdk=true;throw e}
+  return id}
+
+/* library */
+async function spLoadPlaylists(){
+  try{const out=[{id:'liked',name:'Liked Songs',total:null}];let url='/me/playlists?limit=50';
+    for(let i=0;i<10&&url;i++){const j=await sp('GET',url);
+      (j.items||[]).forEach(p=>{if(p&&p.id)out.push({id:p.id,name:p.name||'Untitled playlist',total:(p.items&&p.items.total)!=null?p.items.total:(p.tracks&&p.tracks.total)!=null?p.tracks.total:null})});
+      url=spPath(j.next)}
+    S.sp.playlists=out;save();render()}
+  catch(e){toast(spMsg(e))}}
+async function spLoadTracks(pid){
+  const byId=new Map(SPT.map(t=>[t.id,t]));SPT.forEach(t=>{t.pl=t.pl.filter(x=>x!==pid)});
+  let url=pid==='liked'?'/me/tracks?limit=50':'/playlists/'+pid+'/items?limit=50',n=0;
+  for(let i=0;i<40&&url;i++){const j=await sp('GET',url);
+    for(const it of ((j&&j.items)||[])){const tr=it&&(it.item||it.track);
+      if(!tr||tr.is_local||!/^spotify:track:/.test(tr.uri||''))continue;
+      let t=byId.get(tr.uri);
+      if(!t){t={id:tr.uri,sp:true,title:tr.name,artist:((tr.artists||[])[0]||{}).name||'',dur:tr.duration_ms||0,pl:[],plays:0,fav:false,stations:[]};byId.set(t.id,t);SPT.push(t)}
+      if(!t.pl.includes(pid)){t.pl.push(pid);n++}}
+    url=spPath(j&&j.next)}
+  S.sp.loaded[pid]=n;return n}
+function spAssign(){const src=S.sp.sources;
+  SPT=SPT.filter(t=>t.pl.length);
+  SPT.forEach(t=>{t.stations=Object.keys(src).filter(sid=>(src[sid]||[]).some(p=>t.pl.includes(p)))});
+  saveSp();save()}
+async function savePlaylist(pid){
+  const picked=[...document.querySelectorAll('#sheetbody [data-st]')].filter(c=>c.checked).map(c=>c.dataset.st);
+  stations().forEach(s=>{const cur=(S.sp.sources[s.id]||[]).filter(x=>x!==pid);if(picked.includes(s.id))cur.push(pid);S.sp.sources[s.id]=cur});
+  closeSheet();
+  try{
+    if(picked.length){toast('Loading songs from Spotify…');const n=await spLoadTracks(pid);
+      toast(n?n+' songs loaded':'Spotify shared no songs. It only shares playlists you own or collaborate on.')}
+    else{SPT.forEach(t=>{t.pl=t.pl.filter(x=>x!==pid)});delete S.sp.loaded[pid]}
+  }catch(e){const own=e.status===403||e.status===404;if(own)stations().forEach(s=>{S.sp.sources[s.id]=(S.sp.sources[s.id]||[]).filter(x=>x!==pid)});
+    toast(own?'Spotify only shares songs from playlists you own or collaborate on.':spMsg(e))}
+  spAssign();render()}
+function spPanel(){
+  if(!spCanRun())return `<div class="note err">Spotify cannot be reached from this copy of the radio. Open your own hosted copy (an https address) directly in Safari and connect there.</div>`;
+  if(!S.sp.refresh)return `<div class="note">One-time setup. You need Spotify Premium.<br><br>
+     <b>1.</b> Go to <a href="https://developer.spotify.com/dashboard">developer.spotify.com/dashboard</a>, sign in and create an app. Pick <b>Web API</b> when it asks what you will use.<br>
+     <b>2.</b> In the app's settings, add this exact Redirect URI:<br><span style="font-family:var(--mono);font-size:12px;color:var(--text);overflow-wrap:anywhere">${esc(spRedirect())}</span> <button class="btn sm" data-act="spcopy">Copy</button><br>
+     <b>3.</b> Copy the app's Client ID and paste it below.</div>
+     <div class="fields"><label class="field">Spotify Client ID<input id="spcid" value="${esc(S.sp.clientId)}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="32 letters and numbers"></label></div>
+     <div class="btns" style="margin-top:12px"><button class="btn pri" data-act="spconnect">Connect Spotify</button></div>`;
+  const sts=stations();
+  const ip=S.sp.inpage;
+  return `<div class="note">Spotify is connected. Tap a playlist and choose which stations draw from it.</div>
+   <h3>Sound comes from</h3>
+   <div class="btns"><button class="btn sm${ip?' pri':''}" data-act="spwhere" data-id="page">This page</button><button class="btn sm${ip?'':' pri'}" data-act="spwhere" data-id="app">The Spotify app</button></div>
+   <div class="note${ip&&spSdkErr?' err':''}">${ip?(spSdkErr?esc(spSdkErr):(spDevId?'In-page player is ready.':'In-page player is connecting…')+' Spotify streams right here in the radio. Keep this page on screen; on iPhone, music is likely to stop when Safari goes to the background or the phone locks.'):'The radio sends songs to the Spotify app on this phone. Music keeps going with the phone locked, but Spotify has to be open in the background.'}</div>
+   <div class="btns" style="margin-top:12px"><button class="btn" data-act="splists">Refresh playlists</button><button class="btn danger" data-act="spdisconnect">Disconnect</button></div>
+   <h3>${S.sp.playlists.length} playlists · ${SPT.length} songs in rotation</h3>
+   <div class="list">${S.sp.playlists.map(p=>{const used=sts.filter(s=>(S.sp.sources[s.id]||[]).includes(p.id));
+     return `<button class="row" data-act="spl" data-id="${esc(p.id)}"><div class="grow"><div class="t">${esc(p.name)}</div><div class="s">${used.length?(S.sp.loaded[p.id]||0)+' songs · '+used.map(s=>esc(s.name)).join(', '):'Not on any station'+(p.total!=null?' · '+p.total+' songs':'')}</div></div><div class="dots">${used.map(s=>`<i style="--c:${s.color}"></i>`).join('')}</div></button>`}).join('')||'<div class="row dim"><div class="s">No playlists found. Tap Refresh playlists.</div></div>'}</div>`}
+function playlistSheet(pid){const p=S.sp.playlists.find(x=>x.id===pid);if(!p)return;
+  openSheet(`<h2>${esc(p.name)}</h2><h3>Feeds these stations</h3>
+   ${stations().filter(s=>!s.all).map(s=>`<label class="chk"><input type="checkbox" data-st="${s.id}" id="ps-${s.id}" ${(S.sp.sources[s.id]||[]).includes(pid)?'checked':''}> <span style="color:${s.color};font-weight:600">${esc(s.name)}</span></label>`).join('')}
+   <div class="s" style="color:var(--mute);font-size:13px;margin-top:8px">Gacha City plays every song from every playlist you use.</div>
+   <div class="btns" style="margin-top:14px"><button class="btn pri" data-act="savespl" data-id="${esc(pid)}">Save</button><button class="btn" data-act="close">Cancel</button></div>`)}
+
+/* playback */
+function spStop(){clearTimeout(spPollT);clearTimeout(spEdgeT);spBatch=[];spIdx=-1;spExt=null;spEdgeFor='';spStale=false;spBusy=false}
+function stopAll(){const was=spMode()&&on;token++;cancelSpeech();on=false;try{au.pause()}catch(e){}nowItem=null;queue=[];prog=null;djText='';errMsg='';if(was)sp('PUT','/me/player/pause').catch(()=>{});spStop()}
+function spBuild(){const st=cur(),pool=ORR.poolFor(st,SPT),out=[];if(!prog||prog.off)prog=ORR.newProg(st,rand);
+  for(let i=0,n=Math.min(20,pool.length);i<n;i++){
+    const pend=out.map(b=>({trackId:b.trackId,artist:(trackById(b.trackId)||{}).artist,at:Date.now()}));
+    const pick=ORR.pickTrack(st,pool,S.recent.concat(pend),Date.now(),rand);if(!pick)break;
+    out.push({trackId:pick.track.id,brk:ORR.djDue(prog,st,rand)})}
+  return out}
+function spUpNext(){const out=[];for(let k=Math.max(0,spIdx);k<spBatch.length&&out.length<4;k++){if(k>spIdx)out.push({type:'music',trackId:spBatch[k].trackId});if(spBatch[k].brk)out.push({type:'dj',kind:spBatch[k].brk})}return out}
+async function spDevice(){if(S.sp.inpage)return spPlayerId();const j=await sp('GET','/me/player/devices');const d=((j&&j.devices)||[]).filter(x=>!x.is_restricted);
+  return (d.find(x=>x.is_active)||d.find(x=>x.type==='Smartphone')||d[0]||{}).id||null}
+function spEnter(i){spIdx=i;const t=trackById(spBatch[i].trackId);nowItem={type:'music',trackId:t.id};spExt=null;spEdgeFor='';spStale=false;
+  S.recent.push({trackId:t.id,artist:t.artist,at:Date.now()});if(S.recent.length>300)S.recent.splice(0,S.recent.length-300);
+  t.lastPlayed=Date.now();spState={prog:0,dur:t.dur,at:Date.now(),playing:true};
+  log('music',t.title+(t.artist?' · '+t.artist:''));render()}
+function spLeave(){const b=spBatch[spIdx];if(!b||spExt)return;const t=trackById(b.trackId);if(!t)return;const heard=spNow();
+  if(heard>=30000||(t.dur&&heard>=t.dur*0.8))t.plays=(t.plays||0)+1;else log('skip','Skipped '+t.title);saveSp()}
+async function spPlayBatch(b){
+  b=b||spBuild();if(!b.length){stopWith(cur().name+' has no Spotify songs yet. In Music, tap a playlist and tick this station.');return false}
+  const dev=await spDevice();if(!dev){spFail(SP_ASLEEP);return false}
+  if(S.sp.inpage)await sp('PUT','/me/player',{device_ids:[dev],play:false}).catch(()=>{});
+  await sp('PUT','/me/player/shuffle?state=false&device_id='+dev).catch(()=>{});
+  await sp('PUT','/me/player/play?device_id='+dev,{uris:b.map(x=>x.trackId)});
+  sp('PUT','/me/player/repeat?state=off&device_id='+dev).catch(()=>{});
+  spCmdAt=Date.now();spBatch=b;spEnter(0);return true}
+async function spStart(intro){
+  unlock();spGesture();const my=++token,st=cur();errMsg='';djText='';clearTimeout(spEdgeT);
+  if(!ORR.poolFor(st,SPT).length){spStop();nowItem=null;stopWith(st.name+' has no Spotify songs yet. In Music, tap a playlist and tick '+st.name+'.');return}
+  on=true;prog=ORR.newProg(st,rand);spBusy=true;render();
+  try{
+    if(spBatch.length)await sp('PUT','/me/player/pause').catch(()=>{});
+    if(intro){nowItem={type:'dj',kind:'intro'};spExt=null;await playDj({kind:'intro'},my);if(my!==token)return;djText=''}
+    await spPlayBatch()}
+  catch(e){if(my===token)spFail(spMsg(e))}
+  finally{if(my===token){spBusy=false;if(on)spPollSoon(1500)}}}
+function spPollSoon(ms){clearTimeout(spPollT);spPollT=setTimeout(spPoll,ms)}
+async function spPoll(){
+  if(!spMode()||!on)return;
+  if(document.hidden||spBusy){spPollSoon(3000);return}
+  try{
+    const s=await sp('GET','/me/player');
+    if(!on||spBusy)return spPollSoon(3000);
+    const fresh=Date.now()-spCmdAt<5000;
+    if(!s||!s.item){if(!fresh){spStale=true;spFail(S.sp.inpage?'Spotify stopped playing in this page. Press play to start again.':SP_ASLEEP)}else spPollSoon(2000);return}
+    const uri=s.item.uri;let i=-1;
+    for(let k=Math.max(0,spIdx);k<spBatch.length;k++)if(spBatch[k].trackId===uri){i=k;break}
+    if(i<0)i=spBatch.findIndex(b=>b.trackId===uri);
+    if(i<0){if(!spExt||spExt.uri!==uri){spLeave();spExt={uri,title:s.item.name,artist:(s.item.artists||[]).map(a=>a.name).join(', ')};nowItem={type:'ext'};spStale=true}}
+    else if(i!==spIdx||spExt){spLeave();spEnter(i)}
+    if(!s.is_playing&&!fresh){ // paused in the Spotify app, or the batch ran out while this page slept
+      spState={prog:s.progress_ms||0,dur:s.item.duration_ms||0,at:Date.now(),playing:false};
+      if(i<0||i>=spBatch.length-1&&(s.progress_ms||0)<2000)spStale=true;
+      on=false;render();return}
+    spState={prog:s.progress_ms||0,dur:s.item.duration_ms||0,at:Date.now(),playing:true};
+    if(i>=0&&i===spIdx){const rem=spState.dur-spState.prog,need=spBatch[i].brk||spBatch.length-1-i<3;
+      if(need&&rem<5200&&spEdgeFor!==uri){spEdgeFor=uri;clearTimeout(spEdgeT);spEdgeT=setTimeout(()=>spEdge(uri),Math.max(0,rem-1400))}}
+    render();spPollSoon(3000)}
+  catch(e){spFail(spMsg(e))}}
+/* Runs just before a song ends: DJ break and/or a fresh batch of songs. Speech never overlaps Spotify audio. */
+async function spEdge(uri){
+  if(!on||document.hidden||spBusy||!spBatch[spIdx]||spBatch[spIdx].trackId!==uri)return;
+  const b=spBatch[spIdx],low=spBatch.length-1-spIdx<3,doDj=!!b.brk&&Date.now()-lastDjAt>=60000,my=token;
+  if(!doDj&&!low)return;
+  spBusy=true;
+  try{
+    const nb=low?spBuild():null;
+    if(doDj){
+      await sp('PUT','/me/player/pause');
+      spState={prog:spState.dur,dur:spState.dur,at:Date.now(),playing:false};spLeave();
+      djNext=nb&&nb[0]?trackById(nb[0].trackId):null;
+      nowItem={type:'dj',kind:b.brk};
+      await playDj({kind:b.brk},my);djNext=null;
+      if(my!==token)return;djText='';
+      if(nb&&nb.length)await spPlayBatch(nb);
+      else{await sp('POST','/me/player/next');await sp('PUT','/me/player/play').catch(()=>{});spCmdAt=Date.now();spEnter(spIdx+1)}}
+    else if(nb&&nb.length){spState.prog=spState.dur;spLeave();await spPlayBatch(nb)}}
+  catch(e){if(my===token)spFail(spMsg(e))}
+  finally{djNext=null;if(my===token){spBusy=false;if(on)spPollSoon(1500)}}}
+async function spToggle(){
+  spGesture();
+  if(on){const p=spNow();on=false;token++;cancelSpeech();djText='';spBusy=false;clearTimeout(spEdgeT);spState={prog:p,dur:spState.dur,at:Date.now(),playing:false};
+    if(nowItem&&nowItem.type==='dj'){nowItem=null;spStale=true}
+    render();try{await sp('PUT','/me/player/pause')}catch(e){}return}
+  if(!spBatch.length||spStale||!nowItem||nowItem.type!=='music')return spStart(!spBatch.length);
+  on=true;errMsg='';render();
+  try{await sp('PUT','/me/player/play');spCmdAt=Date.now();spState.playing=true;spState.at=Date.now();spEdgeFor='';spPollSoon(1500)}
+  catch(e){spStart(false)}}
+async function spNext(){
+  spGesture();
+  if(!on||!spBatch.length||spStale||spIdx>=spBatch.length-1){if(spBatch.length&&!spExt)spLeave();return spStart(false)}
+  token++;cancelSpeech();djText='';spBusy=false;clearTimeout(spEdgeT);
+  try{await sp('POST','/me/player/next');await sp('PUT','/me/player/play').catch(()=>{});spCmdAt=Date.now();spPollSoon(700)}catch(e){spFail(spMsg(e))}}
+async function spPrev(){
+  if(!on||!spBatch.length)return;
+  try{await sp('POST','/me/player/previous');spCmdAt=Date.now();spPollSoon(700)}catch(e){spFail(spMsg(e))}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&spMode()&&on)spPollSoon(200)});
+setInterval(()=>{if(spMode()&&on&&nowItem&&nowItem.type==='music')renderProgress()},500);
+
+/* ---------- cards ---------- */
+function handleTag(uid,source){
+  uid=String(uid||'').replace(/[^0-9a-f]/gi,'').toUpperCase();if(!uid)return;
+  const card=S.cards.find(c=>c.uid===uid);
+  if(!card){log('card',`Unknown card ${uid} scanned`);toast('Unknown card. Give it a job.');cardSheet({uid,label:'',target:curId},true);return}
+  const st=station(card.target);
+  if(card.action!=='play_station'||!st||!st.enabled){log('card',`${card.label}: target unavailable`);toast('That card points at a station that is off or gone.');cardSheet(card,false);return}
+  toast(`${card.label} → ${st.name}`);showTab('radio');tune(st.id,`${card.label} scanned${source?' ('+source+')':''}`)}
+async function scanNfc(){
+  try{const r=new NDEFReader();await r.scan();r.onreading=e=>handleTag(e.serialNumber,'NFC');toast('Hold a card to the back of your phone.')}
+  catch(e){toast('NFC is blocked in this view. Use the virtual cards below.')}}
+
+/* ---------- UI ---------- */
+const ICON={play:'<svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>',pause:'<svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>'};
+const fmt=s=>{if(!isFinite(s))return '--:--';s=Math.floor(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+let toastT=0;function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600)}
+function showTab(name){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('show',v.id==='v-'+name));document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('cur',b.dataset.tab===name));render();window.scrollTo(0,0)}
+function pos(f){return ((f-87)/22*100).toFixed(2)+'%'}
+function render(){
+  const st=cur(),l=live();
+  document.documentElement.style.setProperty('--st',st.color);
+  $('air').classList.toggle('on',on);$('airtxt').textContent=on?'ON AIR':'STANDBY';
+  let nums='';for(let f=88;f<=108;f+=4)nums+=`<span style="left:${pos(f)}">${f}</span>`;
+  $('band').innerHTML=`<div class="ticks"></div><div class="ticks major"></div><div class="nums">${nums}</div>`+
+    l.map(s=>`<button class="pip${s.id===st.id?' cur':''}" style="left:${pos(s.freq)};--c:${s.color}" data-act="tune" data-id="${s.id}" aria-label="Tune to ${esc(s.name)}"></button>`).join('')+
+    `<div class="needle" id="needle" style="left:${pos(st.freq)}"></div>`;
+  $('freq').textContent=st.freq.toFixed(1)+' FM';
+  $('stname').textContent=st.name;$('sttag').textContent=st.tagline||'';
+  $('presets').innerHTML=l.map((s,i)=>`<button class="preset${s.id===st.id?' cur':''}" style="--c:${s.color}" data-act="tune" data-id="${s.id}"><b>${i+1} · ${s.freq.toFixed(1)}</b><span>${esc(s.name)}</span></button>`).join('');
+  $('playbtn').innerHTML=on?ICON.pause:ICON.play;
+  const p=PERSONAS[st.persona]||PERSONAS.wave;let h;
+  if(nowItem&&nowItem.type==='music'){const t=trackById(nowItem.trackId)||{title:'?'};
+    h=`<div class="kicker"><span>${t.demo?'Demo signal':t.sp?'Now playing on Spotify':'Now playing'}</span><button class="fav${t.fav?' on':''}" data-act="fav" data-id="${t.id}" aria-label="Favorite"${t.demo?' hidden':''}>★</button></div>
+       <div class="title">${esc(t.title)}</div><div class="artist">${esc(t.artist||'Unknown artist')}${t.sp?` · <a href="https://open.spotify.com/track/${esc(t.id.split(':')[2])}">Open in Spotify</a>`:''}</div>
+       <div class="bar"><i id="pbar"></i></div><div class="times"><span id="tcur">0:00</span><span id="tdur">--:--</span></div>`}
+  else if(nowItem&&nowItem.type==='dj'){h=`<div class="kicker"><span>On the mic · ${esc(p.name)}</span></div><div class="djline">“${esc(djText||'…')}”</div>`}
+  else if(nowItem&&nowItem.type==='ext'&&spExt){h=`<div class="kicker"><span>Playing from the Spotify app</span></div><div class="title">${esc(spExt.title)}</div><div class="artist">${esc(spExt.artist)} · tap a station to hand control back to the radio</div>`}
+  else h=`<div class="kicker"><span>${on?'Tuning':'Standby'}</span></div><div class="title">${on?'…':'Press play to tune in'}</div><div class="artist">Your host on ${esc(st.name)} is ${esc(p.name)}.</div>`;
+  $('now').innerHTML=h;renderProgress();
+  $('radionote').innerHTML=(errMsg?`<div class="note err">${esc(errMsg)}</div>`:'')+(demoMode()?`<div class="note">You are hearing built-in demo tones. Add your own songs in <b>Music</b> and the stations will play them instead.</div>`:'');
+  const upq=spMode()?spUpNext():queue;
+  $('upnext').innerHTML=upq.slice(0,4).map(q=>{if(q.type==='music'){const t=trackById(q.trackId)||{};return `<div class="row"><div class="grow"><div class="t">${esc(t.title)}</div><div class="s">${esc(t.artist||'Unknown artist')}</div></div><span class="tagk">SONG</span></div>`}
+    return `<div class="row"><div class="grow"><div class="t">${q.kind==='intro'?'Station intro':q.kind==='ident'?'Station ID':'DJ break'}</div><div class="s">${esc(p.name)}</div></div><span class="tagk">DJ</span></div>`}).join('')||`<div class="row dim"><div class="grow"><div class="s">The queue fills when the station starts.</div></div></div>`;
+  $('volrow').hidden=!volOk||(spMode()&&!S.sp.inpage);
+  const v=document.querySelector('.view.show').id;
+  if(v==='v-library')renderLibrary();if(v==='v-stations')renderStations();if(v==='v-cards')renderCards();if(v==='v-log')renderLog();
+}
+function renderProgress(){const b=$('pbar');if(!b||!nowItem||nowItem.type!=='music')return;
+  let d,c;if(spMode()){d=spState.dur/1000;c=spNow()/1000}else{if(au.dataset.tid!==nowItem.trackId)return;d=au.duration;c=au.currentTime}b.style.width=(d?Math.min(100,c/d*100):0)+'%';$('tcur').textContent=fmt(c);$('tdur').textContent=fmt(d)}
+
+let libFilter='';
+function renderLibrary(){
+  const sts=stations(),q=libFilter.toLowerCase();
+  const rows=S.tracks.filter(t=>!q||(t.title+' '+t.artist+' '+t.genre).toLowerCase().includes(q));
+  const missing=S.tracks.filter(t=>t.available===false).length;
+  const src=S.settings.source;
+  const head=`<h2>Music</h2><div class="btns" style="margin-bottom:12px"><button class="btn sm${src==='local'?' pri':''}" data-act="src" data-id="local">Phone files</button><button class="btn sm${src==='spotify'?' pri':''}" data-act="src" data-id="spotify">Spotify</button></div>`;
+  if(src==='spotify'){$('v-library').innerHTML=head+spPanel();return}
+  $('v-library').innerHTML=head+`
+   <div class="btns"><label class="btn pri" for="file">Add songs from this phone</label></div>
+   <div class="note">${S.tracks.length?`${S.tracks.length} songs. Songs with no genre tag play on every station until you assign them. Tap a song to choose its stations.`:'No songs yet. Pick audio files you own (MP3, M4A, FLAC, WAV). They stay on this phone and are never uploaded.'}${missing?` <b>${missing} need re-adding</b>: this browser did not keep the files. Add the same files again and they relink.`:''}</div>
+   ${S.tracks.length?`<div class="fields"><input class="search" id="libq" placeholder="Filter by title, artist or genre" value="${esc(libFilter)}"></div><h3>${rows.length} shown</h3>`:''}
+   <div class="list">${rows.slice(0,300).map(t=>{const on=sts.filter(s=>s.enabled&&ORR.inStation(s,t));
+     return `<button class="row${t.available===false?' dim':''}" data-act="track" data-id="${t.id}"><div class="grow"><div class="t">${t.fav?'★ ':''}${esc(t.title)}</div><div class="s">${esc(t.artist||'Unknown artist')}${t.genre?' · '+esc(t.genre):''}${t.available===false?' · file missing':''}</div></div><div class="dots">${on.map(s=>`<i style="--c:${s.color}"></i>`).join('')}</div></button>`}).join('')}</div>`;
+}
+function renderStations(){
+  const lib=library(),opt=(v,cur,l)=>`<option value="${v}"${String(v)===String(cur)?' selected':''}>${l}</option>`;
+  $('v-stations').innerHTML=`<h2>Stations</h2><div class="list">${stations().sort((a,b)=>a.freq-b.freq).map(s=>{const n=ORR.poolFor(s,lib).length,p=PERSONAS[s.persona]||PERSONAS.wave;
+   return `<div class="stcard" style="--c:${s.color}"><div class="hd"><div class="nm">${esc(s.name)}</div><div class="meta">${s.freq.toFixed(1)} FM</div></div>
+    <div class="meta">${n} ${demoMode()?'demo tones':'songs'} · host ${esc(p.name)} (${esc(p.label)})</div>
+    <div class="fields">
+     <label class="field">On the dial<select data-set="enabled" data-id="${s.id}" id="en-${s.id}">${opt('1',s.enabled?'1':'0','Yes')}${opt('0',s.enabled?'1':'0','Hidden')}</select></label>
+     <label class="field">Discovery<select data-set="discovery" data-id="${s.id}" id="di-${s.id}">${opt('familiar',s.discovery,'Familiar')}${opt('balanced',s.discovery,'Balanced')}${opt('explorer',s.discovery,'Explorer')}</select></label>
+     <label class="field">DJ talks<select data-set="dj" data-id="${s.id}" id="dj-${s.id}">${opt('off',s.dj,'Never')}${opt('rare',s.dj,'Rarely')}${opt('normal',s.dj,'Sometimes')}${opt('chatty',s.dj,'Often')}</select></label>
+     <label class="field">Same artist again after<select data-set="artist" data-id="${s.id}" id="ar-${s.id}">${[15,30,45,60,90].map(m=>opt(m,s.rules.artist_repeat_minutes,m+' min')).join('')}</select></label>
+     <label class="field">Same song again after<select data-set="track" data-id="${s.id}" id="tr-${s.id}">${[60,120,180,240,300,360,480].map(m=>opt(m,s.rules.track_repeat_minutes,(m/60)+' h')).join('')}</select></label>
+    </div>${s.custom?`<div class="btns" style="margin-top:10px"><button class="btn sm danger" data-act="delstation" data-id="${s.id}">Delete station</button></div>`:''}</div>`}).join('')}</div>
+   <div class="btns" style="margin-top:14px"><button class="btn pri" data-act="newstation">Build a new station</button></div>
+   <h3>Radio settings</h3>
+   <label class="chk"><input type="checkbox" id="voiceon" ${S.settings.voice?'checked':''}> Speak DJ lines out loud (off shows them as text only)</label>`;
+}
+function renderCards(){
+  const hasNfc='NDEFReader' in window;
+  $('v-cards').innerHTML=`<h2>Cards</h2>
+   <div class="note">${hasNfc?'This phone can read NFC. Tap Scan, then hold any NFC card or key tag to the phone. New tags ask what they should do.':'This browser cannot read NFC tags (iPhones and most in-app browsers cannot), so the cards here are virtual. Tap one to "scan" it. The mapping works the same way a real reader will.'}</div>
+   <div class="btns" style="margin-top:12px">${hasNfc?'<button class="btn pri" data-act="scan">Scan a real card</button>':''}<button class="btn" data-act="simnew">Scan an unknown card</button></div>
+   <h3>Registered cards</h3>
+   <div class="list">${S.cards.map(c=>{const s=station(c.target);return `<div class="nfc" style="--c:${s?s.color:'#555'}"><div class="chip">NFC</div><div class="grow" style="flex:1;min-width:0"><div class="t" style="font-weight:600">${esc(c.label||'Unnamed card')}</div><div class="s" style="font-size:13px;color:var(--mute)">${esc(c.uid)} → ${s?esc(s.name):'missing station'}</div><div class="btns" style="margin-top:8px"><button class="btn sm pri" data-act="tap" data-id="${c.uid}">Tap card</button><button class="btn sm" data-act="editcard" data-id="${c.uid}">Edit</button></div></div></div>`}).join('')||'<div class="row dim"><div class="s">No cards registered.</div></div>'}</div>`;
+}
+function renderLog(){
+  const lab={music:'SONG',dj:'DJ',card:'CARD',error:'ERROR',skip:'SKIP'};
+  $('v-log').innerHTML=`<h2>Listening log</h2><div class="btns"><button class="btn sm" data-act="clearlog">Clear log</button></div><h3>Most recent first</h3>
+   <div class="list">${S.log.slice(-120).reverse().map(e=>{const s=station(e.st),d=new Date(e.at);
+    return `<div class="row"><div class="grow"><div class="t">${esc(e.text)}</div><div class="s">${d.toLocaleDateString([], {month:'short',day:'numeric'})} ${d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})} · ${s?esc(s.name):''}</div></div><span class="tagk"${e.kind==='error'?' style="color:var(--bad);border-color:var(--bad)"':''}>${lab[e.kind]||e.kind}</span></div>`}).join('')||'<div class="row dim"><div class="s">Nothing played yet.</div></div>'}</div>`;
+}
+
+/* ---------- sheets ---------- */
+function openSheet(html){$('sheetbody').innerHTML=html;$('sheet').hidden=false}
+function closeSheet(){$('sheet').hidden=true}
+function trackSheet(id){const t=S.tracks.find(x=>x.id===id);if(!t)return;
+  openSheet(`<h2>${esc(t.title)}</h2><div class="s" style="color:var(--mute)">${esc(t.artist||'Unknown artist')}${t.genre?' · '+esc(t.genre):''}</div>
+   <h3>Plays on</h3><div class="s" style="color:var(--mute);font-size:13px">Leave all unticked to sort it automatically by genre tag.</div>
+   ${stations().filter(s=>!s.all).map(s=>`<label class="chk"><input type="checkbox" data-st="${s.id}" id="ts-${s.id}" ${t.stations.includes(s.id)?'checked':''}> <span style="color:${s.color};font-weight:600">${esc(s.name)}</span></label>`).join('')}
+   <label class="chk"><input type="checkbox" id="tfav" ${t.fav?'checked':''}> ★ Favorite (plays more on Familiar stations)</label>
+   <div class="btns" style="margin-top:14px"><button class="btn pri" data-act="savetrack" data-id="${t.id}">Save</button><button class="btn danger" data-act="deltrack" data-id="${t.id}">Remove song</button><button class="btn" data-act="close">Cancel</button></div>`)}
+function cardSheet(c,isNew){
+  openSheet(`<h2>${isNew?'New card':'Edit card'}</h2><div class="s" style="font-family:var(--mono);color:var(--mute)">Tag ${esc(c.uid)}</div>
+   <div class="fields"><label class="field">Card name<input id="clabel" value="${esc(c.label)}" placeholder="Road trip card"></label>
+   <label class="field">When scanned, play<select id="ctarget">${live().map(s=>`<option value="${s.id}"${s.id===c.target?' selected':''}>${esc(s.name)}</option>`).join('')}</select></label></div>
+   <div class="btns" style="margin-top:14px"><button class="btn pri" data-act="savecard" data-id="${c.uid}">Save card</button>${isNew?'':`<button class="btn danger" data-act="delcard" data-id="${c.uid}">Remove</button>`}<button class="btn" data-act="close">Cancel</button></div>`)}
+function stationSheet(){
+  openSheet(`<h2>New station</h2>
+   <div class="fields"><label class="field">Name<input id="nsname" maxlength="28" placeholder="Sunday Drive"></label>
+   <label class="field">One-line identity<input id="nstag" maxlength="60" placeholder="Slow songs for slow mornings."></label></div>
+   <div class="fields"><label class="field">DJ personality<select id="nsper">${Object.entries(PERSONAS).map(([k,p])=>`<option value="${k}">${esc(p.name)} · ${esc(p.label)}</option>`).join('')}</select></label>
+   <label class="field">Color<input type="color" id="nscol" value="#7fd1ff"></label></div>
+   <div class="note">After saving, open Music and tick this station on the songs it should play. Until then it plays your unsorted songs.</div>
+   <div class="btns" style="margin-top:14px"><button class="btn pri" data-act="savestation">Create station</button><button class="btn" data-act="close">Cancel</button></div>`)}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const tab=e.target.closest('[data-tab]');if(tab){showTab(tab.dataset.tab);return}
+  if(e.target.id==='sheet'){closeSheet();return}
+  const el=e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act,id=el.dataset.id;
+  if(a==='toggle')toggle();
+  else if(a==='next')next(); else if(a==='prev')prev();
+  else if(a==='stnext')stepStation(1); else if(a==='stprev')stepStation(-1);
+  else if(a==='tune')tune(id);
+  else if(a==='fav'){const t=trackById(id);if(t){t.fav=!t.fav;save();render()}}
+  else if(a==='track')trackSheet(id);
+  else if(a==='savetrack'){const t=S.tracks.find(x=>x.id===id);t.stations=[...document.querySelectorAll('#sheetbody [data-st]')].filter(c=>c.checked).map(c=>c.dataset.st);t.fav=$('tfav').checked;save();closeSheet();if(on)refill(true);render()}
+  else if(a==='deltrack'){S.tracks=S.tracks.filter(x=>x.id!==id);blobs.delete(id);idbDel(id);queue=queue.filter(q=>q.trackId!==id);save();closeSheet();render()}
+  else if(a==='close')closeSheet();
+  else if(a==='tap')handleTag(id,'virtual');
+  else if(a==='simnew'){let u='04';for(let i=0;i<8;i++)u+='0123456789ABCDEF'[Math.floor(Math.random()*16)];handleTag(u,'virtual')}
+  else if(a==='scan')scanNfc();
+  else if(a==='editcard')cardSheet(S.cards.find(c=>c.uid===id),false);
+  else if(a==='savecard'){const label=$('clabel').value.trim()||'Card '+id.slice(-4),target=$('ctarget').value;let c=S.cards.find(x=>x.uid===id);
+    if(c){c.label=label;c.target=target}else S.cards.push({uid:id,label,action:'play_station',target});save();closeSheet();render();toast('Card saved')}
+  else if(a==='delcard'){S.cards=S.cards.filter(c=>c.uid!==id);save();closeSheet();render()}
+  else if(a==='clearlog'){S.log=[];save();renderLog()}
+  else if(a==='src'){stopAll();S.settings.source=id;save();render()}
+  else if(a==='spconnect'){S.sp.clientId=$('spcid').value.trim();save();if(!S.sp.clientId){toast('Paste your Spotify Client ID first.');return}spLogin()}
+  else if(a==='spcopy'){try{navigator.clipboard.writeText(spRedirect()).then(()=>toast('Copied'),()=>toast('Select the address and copy it by hand.'))}catch(x){toast('Select the address and copy it by hand.')}}
+  else if(a==='splists')spLoadPlaylists();
+  else if(a==='spwhere'){stopAll();S.sp.inpage=id==='page';save();if(S.sp.inpage)spInitPlayer();else spKillPlayer();render()}
+  else if(a==='spdisconnect'){stopAll();spKillPlayer();S.sp=Object.assign(S.sp,{token:'',refresh:'',exp:0,playlists:[],sources:{},loaded:{}});SPT=[];saveSp();S.settings.source='local';save();render();toast('Spotify disconnected')}
+  else if(a==='spl')playlistSheet(id);
+  else if(a==='savespl')savePlaylist(id);
+  else if(a==='newstation')stationSheet();
+  else if(a==='savestation'){const name=$('nsname').value.trim();if(!name){toast('Give the station a name.');return}
+    const used=stations().map(s=>s.freq),freq=FREE_FREQS.find(f=>!used.includes(f));if(!freq){toast('The dial is full. Delete a custom station first.');return}
+    const sid='c-'+hash(name+Date.now());
+    S.custom.push({id:sid,custom:true,name,freq,tagline:$('nstag').value.trim(),color:$('nscol').value,persona:$('nsper').value,genres:['\u0000'],discovery:'balanced',dj:'normal',motif:[440,554,659],rules:{artist_repeat_minutes:45,track_repeat_minutes:240}});
+    save();closeSheet();render();toast(`${name} is on the dial at ${freq.toFixed(1)}`)}
+  else if(a==='delstation'){S.custom=S.custom.filter(s=>s.id!==id);delete S.edits[id];S.tracks.forEach(t=>t.stations=t.stations.filter(x=>x!==id));if(curId===id){curId=live()[0].id;if(on)toggle()}save();render()}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='file'){importFiles([...t.files]);t.value='';return}
+  if(t.id==='voiceon'){S.settings.voice=t.checked;save();return}
+  if(t.dataset.set){const id=t.dataset.id,k=t.dataset.set,st=station(id);
+    if(k==='enabled'){if(t.value==='0'&&live().length<=1){toast('Keep at least one station on the dial.');render();return}edit(id,{enabled:t.value==='1'});if(t.value==='0'&&curId===id){if(on)toggle();curId=live()[0].id}}
+    else if(k==='discovery')edit(id,{discovery:t.value});
+    else if(k==='dj'){edit(id,{dj:t.value});if(id===curId&&prog){prog=ORR.newProg(station(id),rand);queue=queue.filter(q=>q.type==='music')}}
+    else if(k==='artist')edit(id,{rules:Object.assign({},st.rules,{artist_repeat_minutes:+t.value})});
+    else if(k==='track')edit(id,{rules:Object.assign({},st.rules,{track_repeat_minutes:+t.value})});
+    render()}
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='vol'){S.settings.volume=+e.target.value;try{au.volume=S.settings.volume}catch(x){}try{spPlayer&&spPlayer.setVolume(S.settings.volume)}catch(x){}save()}
+  if(e.target.id==='libq'){libFilter=e.target.value;renderLibrary();const q=$('libq');q.focus();q.setSelectionRange(q.value.length,q.value.length)}
+});
+
+/* ---------- boot ---------- */
+(async function boot(){
+  if(!station(curId)||!station(curId).enabled)curId=(live()[0]||stations()[0]).id;
+  try{au.volume=0.5;volOk=Math.abs(au.volume-0.5)<0.01;au.volume=S.settings.volume}catch(e){volOk=false}
+  $('vol').value=S.settings.volume;
+  render();
+  if(S.tracks.length){const keys=await idbKeys();const have=new Set(keys||[]);S.tracks.forEach(t=>{t.available=have.has(t.id)||blobs.has(t.id)});render()}
+  try{window.speechSynthesis&&speechSynthesis.getVoices()}catch(e){}
+  await spCallback();
+  if(spMode()&&S.sp.inpage)spInitPlayer();
+})();
+</script>
+</body>
+</html>
