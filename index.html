@@ -274,43 +274,44 @@ if(typeof module!=='undefined'&&module.exports)module.exports=api; else root.ORR
 <script id="data">
 /* ===== Station and DJ definitions. Everything here is data; the app has no station-specific code. ===== */
 const PERSONAS={
- wave:{label:'Easygoing',name:'Marlo',rate:0.92,pitch:0.95,voice:0,lines:{
+ wave:{label:'Easygoing',name:'Marlo',rate:0.95,pitch:1.0,prefer:['Samantha', 'Ava', 'Allison', 'Susan', 'Google US English'],voice:0,lines:{
   intro:["This is {st}. Windows down, no rush. Let's ease into it.","{st}, coming in soft. Stay as long as you like.","You found {st}. Good timing, we were just getting comfortable."],
   ident:["{st}.","You're on {st}, where nobody's in a hurry.","{st}. Still here, still easy.","This is {st}. Breathe out.","{st}, the slow lane of the dial."],
   talk:["I'm {dj}, this is {st}. I had a whole thing planned to say here, and then the last song talked me out of it. More music.","Somebody once told me the scenic route is just the long way with better publicity. I'll take it. {st}.","If you're driving, hi. If you're not driving, also hi, but keep your eyes open anyway. This is {st}.","No traffic report here. I don't know where you are, and that's the nice part. More music on {st}.","{dj} here. That one's been stuck in my head all week, and I'm fine with it."],
   song:["Coming up on {st}, {title}, from {artist}. Settle in.","Next, {artist} with {title}. I think you'll like where it goes.","Here's {title} by {artist}. Turn it up a little. Just a little."],
   tod:{morning:"Morning from {st}. Coffee first, opinions later.",afternoon:"Afternoon on {st}. The day's half done and so are we.",evening:"Evening on {st}. The songs get longer from here.",night:"It's late on {st}. Just you, me, and the road hum."}}},
- pulse:{label:'High energy',name:'Jet',rate:1.12,pitch:1.15,voice:1,lines:{
+ pulse:{label:'High energy',name:'Jet',rate:1.08,pitch:1.05,prefer:['Karen', 'Catherine', 'Nicky', 'Zoe', 'Google UK English Female'],voice:1,lines:{
   intro:["{st}. You're in. Let's move.","This is {st}, and we are already going.","{st}, locked. Keep up."],
   ident:["{st}.","{st}. No brakes.","You're on {st}. Stay loud.","{st}, back to back to back.","This is {st}. Next one's ready."],
   talk:["{dj} here on {st}. I'd talk longer but the next track is tapping its foot at me.","Quick check. Shoulders loose? Volume up? Good. {st}.","{st}, where the skip button gets lonely. {dj} with you, here's more.","If that last one didn't move you, I've got nothing. Kidding. I've got plenty.","{dj} on {st}. Short break, long run. Go."],
   song:["Up next on {st}, {artist}, {title}. Go.","Here it comes. {title}, from {artist}.","{artist} is next with {title}. Turn it up."],
   tod:{morning:"Morning! {st}. We're skipping the snooze button.",afternoon:"Afternoon on {st}. The slump stops here.",evening:"Evening on {st}. The day's done, the night isn't.",night:"Late night on {st}. Nobody's sleeping on this station."}}},
- xs:{label:'Dry and opinionated',name:'Dez',rate:0.98,pitch:0.8,voice:2,lines:{
+ xs:{label:'Dry and opinionated',name:'Dez',rate:0.98,pitch:0.92,prefer:['Daniel', 'Arthur', 'Oliver', 'Google UK English Male'],voice:2,lines:{
   intro:["{st}. You probably took a wrong turn. Stay anyway.","This is {st}. We don't take requests. We barely take suggestions.","{st}. Lower your expectations and raise the volume."],
   ident:["{st}.","{st}. Still unlicensed in spirit.","You're on {st}. Nobody asked for this, and yet.","{st}. The part of the dial your parents skipped.","This is {st}. Carry on."],
   talk:["{dj}, {st}. I was told to sound more enthusiastic. This is it. This is the enthusiasm.","That was a song. I liked it. That's the whole review. {st}.","{st}, proudly ignoring the charts since whenever this started. {dj} here. More noise.","If you've heard the next one before, good for you. If you haven't, you're welcome.","{dj} on {st}. No giveaways, no contests, no caller number nine. Just this."],
   song:["Next up, {artist}. The song is {title}. Pay attention.","Here's {title} by {artist}. I have opinions about this one. I'll keep them.","{artist}, {title}. You can thank me later."],
   tod:{morning:"It's morning. {st} does not approve, but here we are.",afternoon:"Afternoon on {st}. Peak hours for doing something else.",evening:"Evening on {st}. Finally, a reasonable hour.",night:"It's late. This is when {st} makes the most sense."}}},
- block:{label:'Charismatic host',name:'Coco',rate:1.05,pitch:1.1,voice:3,lines:{
+ block:{label:'Charismatic host',name:'Coco',rate:1.03,pitch:1.04,prefer:['Tessa', 'Moira', 'Zoe', 'Karen'],voice:3,lines:{
   intro:["{st} is open! Come on in, bring somebody.","This is {st}. Street's closed, speakers are out.","You made it to {st}. Grab a plate, find a spot."],
   ident:["{st}!","{st}. Everybody's invited.","You're at {st}. Don't just stand there.","{st}. The whole street can hear us.","This is {st}, and the grill's still going."],
   talk:["It's {dj} at {st}. I see you in the back pretending you don't dance. I see you.","{dj} here. Somebody's uncle just took over the grill, so we're gonna be here a while. More music.","House rules. One, be nice. Two, turn it up. That's it, that's the rules.","If you know the words to the next one, sing. If you don't, sing louder. {st}.","{dj} on {st}. Shout out to everybody holding down a folding chair right now."],
   song:["Next on {st}, {artist} with {title}. Let's go.","This one's {title}, by {artist}. Make some room.","{artist}! {title}! Hands up."],
   tod:{morning:"Good morning from {st}. Yes, we start early.",afternoon:"Afternoon at {st}. Best time of day to stand near a speaker.",evening:"Evening at {st}. Lights are on, nobody's leaving.",night:"Late night at {st}. The neighbors gave up and joined in."}}},
- classic:{label:'Highway veteran',name:'Hank',rate:0.9,pitch:0.75,voice:4,lines:{
+ classic:{label:'Highway veteran',name:'Hank',rate:0.92,pitch:0.9,prefer:['Aaron', 'Tom', 'Evan', 'Nathan', 'Alex', 'Gordon'],voice:4,lines:{
   intro:["{st}. Buckle up, I've got the map.","This is {st}. Long road, good songs.","Welcome to {st}. Tank's full, let's roll."],
   ident:["{st}.","{st}. Mile after mile.","You're riding with {st}.","{st}, the station that knows every exit.","This is {st}. Keep it between the lines."],
   talk:["{dj} here on {st}. I once drove four hours for a slice of pie. Would do it again. Here's more music.","Rule of the road. Driver picks the music, passenger keeps quiet about it. Lucky for you, I'm doing both jobs.","{dj} on {st}. They say it's about the journey, not the destination. They've never been late for dinner.","If there's a rest stop coming up, take it. Stretch your legs. I'll hold your place. {st}.","Some songs just sound better at highway speed. I can't prove it, but I'm right."],
   song:["Up next on {st}, {artist}, with {title}.","Here's one for the open road. {title}, by {artist}.","{artist} coming up. This is {title}. Roll the window down for it."],
   tod:{morning:"Morning from {st}. Best time to put some miles behind you.",afternoon:"Afternoon on {st}. Plenty of road left.",evening:"Evening on {st}. Headlights on, folks.",night:"Late night on {st}. Just us and the white lines."}}},
- gacha:{label:'Quirky and curious',name:'Pip',rate:1.06,pitch:1.3,voice:5,lines:{
+ gacha:{label:'Quirky and curious',name:'Pip',rate:1.04,pitch:1.1,prefer:['Rishi', 'Moira', 'Tessa', 'Isha'],voice:5,lines:{
   intro:["{st}! Turn the crank, see what drops.","This is {st}. I don't know what's next either.","Welcome to {st}, where the playlist is a rumor."],
   ident:["{st}.","{st}. Anything can happen, and usually does.","You're in {st}. Hold on to something.","{st}. Shake the capsule.","This is {st}, population: whatever's next."],
   talk:["{dj} here in {st}. I reached into the machine and that's what came out. Let's reach in again.","Fun fact about the next song. I haven't looked yet. That's the fun fact.","{st}, where two matching songs in a row is considered a malfunction.","{dj} on {st}. Somebody asked what genre this station is. I said yes.","No two pulls the same. Well. Sometimes two. {st}."],
   song:["The capsule says {title}, by {artist}. Ooh.","Next pull, {artist}, {title}. Didn't see that coming.","Up next in {st}, {title} from {artist}. Sure, why not."],
   tod:{morning:"Good morning, {st}. First pull of the day.",afternoon:"Afternoon in {st}. The machine is warmed up.",evening:"Evening in {st}. Odds are getting weirder.",night:"Late night in {st}. The rare ones come out now."}}}
 };
+Object.keys(PERSONAS).forEach(k=>{PERSONAS[k].key=k});
 const DEFAULT_STATIONS=[
  {id:'wave-fm',name:'Wave FM',freq:88.3,tagline:'Relaxed, melodic, windows down.',color:'#5fd0c5',persona:'wave',genres:['indie','alternative','chill','ambient','dream','lo-fi','lofi','folk','soft','acoustic'],discovery:'balanced',dj:'normal',motif:[392,494,587],rules:{artist_repeat_minutes:45,track_repeat_minutes:240}},
  {id:'pulse-radio',name:'Pulse Radio',freq:94.7,tagline:'Upbeat, fast, always moving.',color:'#ff5d8f',persona:'pulse',genres:['pop','electro','dance','edm','house','techno','synth'],discovery:'balanced',dj:'normal',motif:[523,659,784,1047],rules:{artist_repeat_minutes:45,track_repeat_minutes:180}},
@@ -333,7 +334,7 @@ const DEFAULT_CARDS=DEFAULT_STATIONS.map((s,i)=>({uid:'04'+(0xA1B2C3+i*0x111111)
 const $=id=>document.getElementById(id), au=$('au');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY='orr.v1';
-let S={tracks:[],edits:{},custom:[],cards:DEFAULT_CARDS.slice(),log:[],recent:[],scripts:{},settings:{last:'wave-fm',volume:0.9,voice:true,source:'local'},sp:{clientId:'',token:'',refresh:'',exp:0,playlists:[],sources:{},loaded:{},inpage:true}};
+let S={tracks:[],edits:{},custom:[],cards:DEFAULT_CARDS.slice(),voices:{},log:[],recent:[],scripts:{},settings:{last:'wave-fm',volume:0.9,voice:true,source:'local'},sp:{clientId:'',token:'',refresh:'',exp:0,playlists:[],sources:{},loaded:{},inpage:true}};
 try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);S=Object.assign(S,o);S.settings=Object.assign({last:'wave-fm',volume:0.9,voice:true,source:'local'},o.settings||{});S.sp=Object.assign({clientId:'',token:'',refresh:'',exp:0,playlists:[],sources:{},loaded:{},inpage:true},o.sp||{})}}catch(e){}
 let saveT=0;function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}},300)}
 
@@ -412,6 +413,19 @@ function buildScript(kind){
   if(!text){const key=st.id+':'+pool,rec=S.scripts[key]||(S.scripts[key]=[]);
     const i=ORR.pickScript(L[pool].length,rec,rand);rec.push(i);if(rec.length>8)rec.shift();text=L[pool][i]}
   return {text:text.replace(/\{st\}/g,st.name).replace(/\{dj\}/g,p.name).replace(/\{title\}/g,nt?nt.title:'').replace(/\{artist\}/g,nt?nt.artist:''),p}}
+/* Voice choice. Phones ship a mix of decent, robotic and joke voices; rank them and let the listener override per DJ. */
+const V_JOKE=/^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Deranged|Hysterical|Pipe Organ|Junior|Ralph|Kathy|Fred|Princess)\b/i;
+const V_ROBOT=/^(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley)\b/i;
+function voiceList(){let vs=[];try{vs=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang)&&!V_JOKE.test(v.name))}catch(e){}
+  const rank=v=>(/premium/i.test(v.name)?0:/enhanced|natural/i.test(v.name)?1:V_ROBOT.test(v.name)?4:/compact/i.test(v.voiceURI||'')?3:2);
+  return vs.map((v,i)=>({v,i})).sort((a,b)=>rank(a.v)-rank(b.v)||a.i-b.i).map(x=>x.v)}
+function voiceFor(p){const vs=voiceList();if(!vs.length)return null;
+  const want=S.voices[p.key];if(want){const v=vs.find(x=>x.name===want);if(v)return v}
+  for(const n of p.prefer||[]){const v=vs.find(x=>x.name.toLowerCase().startsWith(n.toLowerCase()));if(v)return v}
+  const good=vs.filter(v=>!V_ROBOT.test(v.name));return (good.length?good:vs)[p.voice%(good.length||vs.length)]}
+function previewVoice(k){const p=PERSONAS[k],st=stations().find(s=>s.persona===k)||cur();
+  try{const ss=speechSynthesis;ss.cancel();const u=new SpeechSynthesisUtterance(p.lines.ident[1].replace(/\{st\}/g,st.name).replace(/\{dj\}/g,p.name)+' I\'m '+p.name+'.');
+    u.rate=p.rate;u.pitch=p.pitch;const v=voiceFor(p);if(v){u.voice=v;u.lang=v.lang}ss.speak(u)}catch(e){toast('This browser has no speech voices.')}}
 function sting(st){return new Promise(res0=>{
   if(!actx||document.hidden)return res0();
   const sm=spMode(),res=()=>{if(sm)try{actx.suspend()}catch(e){}res0()};
@@ -427,7 +441,7 @@ function speak(text,p){return new Promise(res=>{
   cancelSpeech=()=>{try{ss&&ss.cancel()}catch(e){}fin()};
   if(!S.settings.voice||!ss||typeof SpeechSynthesisUtterance==='undefined'){t2=setTimeout(fin,readMs);return}
   try{const u=new SpeechSynthesisUtterance(text);u.rate=p.rate;u.pitch=p.pitch;u.volume=S.settings.volume;
-    const vs=ss.getVoices().filter(v=>/^en/i.test(v.lang));if(vs.length)u.voice=vs[p.voice%vs.length];
+    const v=voiceFor(p);if(v){u.voice=v;u.lang=v.lang}
     let started=false;u.onstart=()=>{started=true};u.onend=fin;u.onerror=fin;
     t1=setTimeout(()=>{if(!started){clearTimeout(t2);t2=setTimeout(fin,readMs)}},2500);
     t2=setTimeout(fin,5000+text.length*120);
@@ -843,6 +857,10 @@ function renderStations(){
      <label class="field">Same song again after<select data-set="track" data-id="${s.id}" id="tr-${s.id}">${[60,120,180,240,300,360,480].map(m=>opt(m,s.rules.track_repeat_minutes,(m/60)+' h')).join('')}</select></label>
     </div>${s.custom?`<div class="btns" style="margin-top:10px"><button class="btn sm danger" data-act="delstation" data-id="${s.id}">Delete station</button></div>`:''}</div>`}).join('')}</div>
    <div class="btns" style="margin-top:14px"><button class="btn pri" data-act="newstation">Build a new station</button></div>
+   <h3>DJ voices</h3>
+   <div class="note">These are the voices built into this phone's browser. Pick one per host and tap Hear to audition it.</div>
+   <div class="list" style="margin-top:8px">${Object.entries(PERSONAS).map(([k,p])=>{const vs=voiceList(),auto=voiceFor({key:'',prefer:p.prefer,voice:p.voice});
+     return `<div class="row"><label class="field" style="flex:1">${esc(p.name)} · ${esc(p.label)}<select data-voice="${k}" id="vo-${k}"><option value="">Automatic${auto?' ('+esc(auto.name)+')':''}</option>${vs.map(v=>`<option value="${esc(v.name)}"${S.voices[k]===v.name?' selected':''}>${esc(v.name)} · ${esc(v.lang)}</option>`).join('')}</select></label><button class="btn sm" data-act="hear" data-id="${k}">Hear</button></div>`}).join('')}</div>
    <h3>Radio settings</h3>
    <label class="chk"><input type="checkbox" id="voiceon" ${S.settings.voice?'checked':''}> Speak DJ lines out loud (off shows them as text only)</label>`;
 }
@@ -914,6 +932,7 @@ document.addEventListener('click',e=>{
   else if(a==='spdisconnect'){stopAll();spKillPlayer();S.sp=Object.assign(S.sp,{token:'',refresh:'',exp:0,playlists:[],sources:{},loaded:{}});SPT=[];saveSp();S.settings.source='local';save();render();toast('Spotify disconnected')}
   else if(a==='spl')playlistSheet(id);
   else if(a==='savespl')savePlaylist(id);
+  else if(a==='hear')previewVoice(id);
   else if(a==='newstation')stationSheet();
   else if(a==='savestation'){const name=$('nsname').value.trim();if(!name){toast('Give the station a name.');return}
     const used=stations().map(s=>s.freq),freq=FREE_FREQS.find(f=>!used.includes(f));if(!freq){toast('The dial is full. Delete a custom station first.');return}
@@ -926,6 +945,7 @@ document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='file'){importFiles([...t.files]);t.value='';return}
   if(t.id==='voiceon'){S.settings.voice=t.checked;save();return}
+  if(t.dataset.voice){if(t.value)S.voices[t.dataset.voice]=t.value;else delete S.voices[t.dataset.voice];save();previewVoice(t.dataset.voice);return}
   if(t.dataset.set){const id=t.dataset.id,k=t.dataset.set,st=station(id);
     if(k==='enabled'){if(t.value==='0'&&live().length<=1){toast('Keep at least one station on the dial.');render();return}edit(id,{enabled:t.value==='1'});if(t.value==='0'&&curId===id){if(on)toggle();curId=live()[0].id}}
     else if(k==='discovery')edit(id,{discovery:t.value});
@@ -946,7 +966,7 @@ document.addEventListener('input',e=>{
   $('vol').value=S.settings.volume;
   render();
   if(S.tracks.length){const keys=await idbKeys();const have=new Set(keys||[]);S.tracks.forEach(t=>{t.available=have.has(t.id)||blobs.has(t.id)});render()}
-  try{window.speechSynthesis&&speechSynthesis.getVoices()}catch(e){}
+  try{if(window.speechSynthesis){speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{if($('v-stations').classList.contains('show'))renderStations()}}}catch(e){}
   await spCallback();
   if(spMode()&&S.sp.inpage)spInitPlayer();
 })();
